@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Interactive H2 Mathematics simulations for Singapore JC students — Vectors, Integration by Parts, Trig Powers, Maclaurin series and limits. Browser-based learning tools." />
+  <meta name="keywords" content="H2 Math, A-Level, Singapore, JC, Vectors, Integration, Maclaurin, interactive, simulation" />
+  <meta name="author" content="H2 Math Simulations" />
+  <meta property="og:title" content="H2 Math Interactive Simulations" />
+  <meta property="og:description" content="Browser-based interactive labs for Singapore JC H2 Mathematics (Syllabus 9758)." />
+  <meta property="og:type" content="website" />
+  <title>H2 Math Interactive Simulations</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --card: #1a2332;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --border: #374151;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 48px 20px 64px;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .badge {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      font-size: 12px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+      font-weight: 500;
+    }
+    header h1 {
+      font-size: clamp(1.6rem, 4vw, 2.1rem);
+      font-weight: 700;
+      margin-bottom: 10px;
+      letter-spacing: -0.02em;
+    }
+    header .subtitle {
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 560px;
+      margin: 0 auto 16px;
+    }
+    header .meta {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .section-title {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 14px;
+      margin-top: 8px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px;
+      margin-bottom: 40px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .card h2 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card .icon { font-size: 1.25rem; }
+    .card p {
+      color: var(--muted);
+      font-size: 0.9rem;
+      flex: 1;
+    }
+    .card ul {
+      list-style: none;
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin: 2px 0 8px;
+    }
+    .card ul li {
+      padding: 2px 0 2px 14px;
+      position: relative;
+    }
+    .card ul li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+    .card a.btn {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      padding: 9px 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-align: center;
+      transition: background 0.15s;
+      margin-top: auto;
+    }
+    .card a.btn:hover { background: var(--accent-hover); }
+    .card a.btn.secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .card a.btn.secondary:hover {
+      background: #1f2937;
+      border-color: var(--muted);
+    }
+    .about {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+    .about h2 { font-size: 1.1rem; margin-bottom: 10px; }
+    .about p, .about li { color: var(--muted); font-size: 0.95rem; }
+    .about ul { margin: 10px 0 0 18px; }
+    .about li { margin-bottom: 4px; }
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge">Singapore JC · H2 Mathematics (9758)</div>
+      <h1>Interactive H2 Math Simulations</h1>
+      <p class="subtitle">
+        Browser-based labs for Vectors, Integration and Maclaurin series.
+        Built as part of an A-Level study app prototype — no install required.
+      </p>
+      <p class="meta">Open any card below · Works offline after first load</p>
+    </header>
+
+    <p class="section-title">Vectors</p>
+    <div class="grid">
+      <div class="card">
+        <h2><span class="icon">🧮</span> Main Vector Suite</h2>
+        <p>Ratio Theorem, Projection, Foot of the Perpendicular and Linked View in one page, with optional 3D orbit.</p>
+        <ul>
+          <li>Click-and-drag points and vectors</li>
+          <li>Type exact coordinates (x, y, z)</li>
+          <li>3D orbit and live algebraic feedback</li>
+        </ul>
+        <a class="btn" href="vector-simulations-combined.html">Open Main Suite</a>
+      </div>
+
+      <div class="card">
+        <h2><span class="icon">∠</span> Angle Between Planes</h2>
+        <p>Dedicated 3D visualisation of the acute angle between two planes using their normals.</p>
+        <ul>
+          <li>Editable normals n₁ and n₂</li>
+          <li>Live θ = arccos(…)</li>
+          <li>Plane patches and normal arrows</li>
+        </ul>
+        <a class="btn" href="vector-angle-planes.html">Open Angle Lab</a>
+      </div>
+
+      <div class="card">
+        <h2><span class="icon">▭</span> Plane Equation Studio</h2>
+        <p>Find the equation of a plane under different given conditions — always via two vectors on the plane and their cross product.</p>
+        <ul>
+          <li>Three points · two lines · point + line · ∥ y-z plane</li>
+          <li>v₁, v₂ arrows, normal n, shaded plane</li>
+          <li>Step-by-step working for every case</li>
+        </ul>
+        <a class="btn" href="plane-equation-studio.html">Open Plane Studio</a>
+      </div>
+
+      <div class="card">
+        <h2><span class="icon">📐</span> Ratio Theorem (standalone)</h2>
+        <p>Focused Ratio Theorem playground if you only need that topic.</p>
+        <ul>
+          <li>Drag A, B, P</li>
+          <li>λ : μ controls</li>
+          <li>Internal / external division</li>
+        </ul>
+        <a class="btn secondary" href="vector-ratio-theorem.html">Open Ratio Only</a>
+      </div>
+    </div>
+
+    <p class="section-title">Calculus</p>
+    <div class="grid">
+      <div class="card">
+        <h2><span class="icon">∫</span> Integration Lab</h2>
+        <p>Integration by parts, tabular method, cyclic cases and trigonometric power reduction formulae.</p>
+        <ul>
+          <li>Parts, tabular and cyclic integrals</li>
+          <li>Trig powers (indefinite and definite 0→π/2)</li>
+          <li>Step-by-step algebra and LIATE hints</li>
+        </ul>
+        <a class="btn" href="integration-by-parts-lab.html">Open Integration Lab</a>
+      </div>
+
+      <div class="card">
+        <h2><span class="icon">Σ</span> Maclaurin and Limits Lab</h2>
+        <p>Expand standard and product series, then resolve indeterminate limits using Maclaurin expansions.</p>
+        <ul>
+          <li>eˣ, sin, cos, ln(1+x), products</li>
+          <li>Limits via series (step-by-step)</li>
+          <li>Reference expansions on the side</li>
+        </ul>
+        <a class="btn" href="maclaurin-limits-lab.html">Open Maclaurin Lab</a>
+      </div>
+    </div>
+
+    <div class="about">
+      <h2>About this project</h2>
+      <p>
+        These simulations are early prototypes for an A-Level study app aimed at Junior College students in Singapore
+        who struggle to start and stick with consistent revision. The focus of the first prototype is
+        <strong>H2 Mathematics</strong>, turning key topics into interactive, low-friction activities.
+      </p>
+      <ul>
+        <li>All labs run entirely in the browser (HTML, CSS, JavaScript)</li>
+        <li>No build step or internet connection required after the first load</li>
+        <li>Designed for laptops (Windows, macOS, Chromebooks)</li>
+        <li>Aligned with SEAB H2 Mathematics Syllabus 9758</li>
+      </ul>
+    </div>
+
+    <footer>
+      <p>
+        Built for Singapore JC H2 Mathematics (Syllabus 9758) · Vectors and Calculus<br />
+        Open-source learning tools · Fork, improve and share
+      </p>
+    </footer>
+  </div>
+</body>
+</html>
