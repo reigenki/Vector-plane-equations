@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>H2 Vectors – Interactive Simulations (with 3D)</title>
+  <style>
+    :root {
+      --bg: #0f1419; --panel: #1a2332; --canvas-bg: #0b1120;
+      --accent: #3b82f6; --accent-hover: #2563eb;
+      --point-a: #ef4444; --point-b: #22c55e; --point-p: #a855f7;
+      --point-f: #f59e0b; --vec-proj: #38bdf8;
+      --text: #e5e7eb; --muted: #9ca3af; --border: #374151;
+      --sidebar-width: 210px; --left-panel-width: 320px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .top-bar {
+      height: 48px; background: var(--panel); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 16px; gap: 12px; flex-shrink: 0;
+    }
+    .top-bar h1 { font-size: 15px; font-weight: 600; }
+    .badge { background: var(--accent); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 999px; }
+    .spacer { flex: 1; }
+    .btn {
+      background: var(--accent); color: #fff; border: none; padding: 6px 12px;
+      border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 500;
+    }
+    .btn:hover { background: var(--accent-hover); }
+    .btn.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn.secondary:hover { background: #1f2937; }
+    .btn.small { padding: 4px 10px; font-size: 12px; }
+    .main { flex: 1; display: flex; min-height: 0; }
+
+    .mode-sidebar {
+      width: var(--sidebar-width); background: #111827; border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; padding: 12px 0; flex-shrink: 0;
+    }
+    .mode-sidebar .title {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--muted); padding: 0 14px 10px;
+    }
+    .mode-btn {
+      display: flex; align-items: center; gap: 10px; padding: 11px 14px;
+      background: transparent; border: none; color: var(--muted); font-size: 13px;
+      cursor: pointer; text-align: left; width: 100%; transition: all 0.15s;
+    }
+    .mode-btn:hover { background: #1f2937; color: var(--text); }
+    .mode-btn.active { background: #1e3a5f; color: #93c5fd; border-right: 3px solid var(--accent); }
+    .mode-btn .icon { width: 20px; text-align: center; font-size: 15px; }
+    .mode-desc { font-size: 11px; color: var(--muted); padding: 10px 14px 0; line-height: 1.4; }
+
+    .left-panel {
+      width: var(--left-panel-width); background: var(--panel); border-right: 1px solid var(--border);
+      padding: 14px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex-shrink: 0;
+    }
+    .panel-section h2 {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--muted); margin-bottom: 8px;
+    }
+    .ratio-controls { display: flex; align-items: center; gap: 8px; }
+    input[type="number"] {
+      width: 58px; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      padding: 5px 6px; border-radius: 6px; font-size: 12px; text-align: center;
+    }
+    input[type="range"] { width: 100%; accent-color: var(--accent); }
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 13px; margin-top: 5px;
+    }
+    .toggle-row label { color: var(--muted); }
+    .point-card {
+      background: var(--bg); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px;
+    }
+    .point-card .label {
+      color: var(--muted); font-size: 10px; text-transform: uppercase;
+      margin-bottom: 4px; display: flex; align-items: center; gap: 5px;
+    }
+    .color-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
+    .coord-row { display: flex; align-items: center; gap: 4px; font-size: 12px; flex-wrap: wrap; }
+    .coord-row span { color: var(--muted); min-width: 12px; }
+    .formula-box {
+      background: #0c1220; border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px; font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 12px; line-height: 1.55;
+    }
+    .formula-box .title {
+      font-family: 'Segoe UI', system-ui, sans-serif; font-size: 10px;
+      color: var(--muted); text-transform: uppercase; margin-bottom: 4px;
+    }
+
+    .canvas-area { flex: 1; display: flex; min-width: 0; position: relative; }
+    .canvas-wrap {
+      flex: 1; position: relative; background: var(--canvas-bg); min-width: 0;
+    }
+    .canvas-wrap.half { border-right: 1px solid var(--border); }
+    .canvas-wrap.half:last-child { border-right: none; }
+    .canvas-label {
+      position: absolute; top: 8px; left: 12px; font-size: 12px; font-weight: 600;
+      color: var(--muted); background: rgba(15,20,25,0.75); padding: 3px 8px;
+      border-radius: 4px; pointer-events: none; z-index: 5;
+    }
+    .view-badge {
+      position: absolute; top: 8px; right: 12px; font-size: 11px; font-weight: 600;
+      color: #93c5fd; background: rgba(30,58,95,0.9); padding: 3px 8px;
+      border-radius: 4px; pointer-events: none; z-index: 5;
+    }
+    canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+    canvas.dragging { cursor: grabbing; }
+    canvas.orbiting { cursor: move; }
+
+    .bottom-bar {
+      height: 64px; background: var(--panel); border-top: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 16px; gap: 16px; flex-shrink: 0; font-size: 13px;
+    }
+    .bottom-bar .live-formula {
+      font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 13px;
+      flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .bottom-bar .hint { color: var(--muted); font-size: 11px; white-space: nowrap; }
+
+    .tooltip {
+      position: absolute; background: #1f2937; color: #fff; padding: 4px 8px;
+      border-radius: 4px; font-size: 12px; pointer-events: none; opacity: 0;
+      transition: opacity 0.12s; z-index: 20; white-space: nowrap;
+    }
+    .tooltip.visible { opacity: 1; }
+    .mode-panel { display: none; }
+    .mode-panel.active { display: flex; flex-direction: column; gap: 12px; }
+    .sync-row { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+    .hint-3d {
+      font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.4;
+      background: #0c1220; padding: 8px; border-radius: 6px; border: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <h1>H2 Vectors Simulations</h1>
+    <span class="badge">3D Enabled</span>
+    <div class="spacer"></div>
+    <button class="btn secondary" id="btn-reset-cam" title="Reset camera">Reset Camera</button>
+    <button class="btn secondary" id="btn-reset">Reset</button>
+    <button class="btn" id="btn-challenge">Challenge</button>
+  </div>
+
+  <div class="main">
+    <nav class="mode-sidebar">
+      <div class="title">Simulation Type</div>
+      <button class="mode-btn active" data-mode="ratio"><span class="icon">📐</span> Ratio Theorem</button>
+      <button class="mode-btn" data-mode="projection"><span class="icon">➡️</span> Projection</button>
+      <button class="mode-btn" data-mode="foot"><span class="icon">📍</span> Foot of Perpendicular</button>
+      <button class="mode-btn" data-mode="linked"><span class="icon">🔗</span> Linked View</button>
+      <div class="mode-desc" id="mode-desc">
+        Point P divides AB in the ratio λ : μ. Drag points or type coordinates. Enable 3D for orbit rotation.
+      </div>
+    </nav>
+
+    <aside class="left-panel">
+      <!-- RATIO -->
+      <div class="mode-panel active" id="panel-ratio">
+        <div class="panel-section">
+          <h2>Ratio λ : μ</h2>
+          <div class="ratio-controls">
+            <input type="number" id="lambda" value="1" min="0.1" step="0.1" />
+            <span style="color:var(--muted)">:</span>
+            <input type="number" id="mu" value="1" min="0.1" step="0.1" />
+          </div>
+          <input type="range" id="ratio-slider" min="0" max="100" value="50" style="margin-top:8px;" />
+        </div>
+        <div class="panel-section">
+          <h2>3D View</h2>
+          <div class="toggle-row"><label>Enable 3D + orbit</label><input type="checkbox" id="ratio-3d" /></div>
+          <div class="hint-3d">When 3D is on: drag empty space to rotate the scene. Points gain a z-coordinate.</div>
+        </div>
+        <div class="panel-section">
+          <h2>Division & Display</h2>
+          <div class="toggle-row"><label>Internal division</label><input type="checkbox" id="internal" checked /></div>
+          <div class="toggle-row"><label>Show grid / axes</label><input type="checkbox" id="show-grid" checked /></div>
+          <div class="toggle-row"><label>Show position vectors</label><input type="checkbox" id="show-pos-vecs" checked /></div>
+          <div class="toggle-row"><label>Snap to grid</label><input type="checkbox" id="snap" /></div>
+        </div>
+        <div class="panel-section">
+          <h2>Points (type x, y, z)</h2>
+          <div class="point-card">
+            <div class="label"><span class="color-dot" style="background:var(--point-a)"></span>A</div>
+            <div class="coord-row">
+              <span>x</span><input type="number" id="ratio-ax" step="0.1" value="-4" />
+              <span>y</span><input type="number" id="ratio-ay" step="0.1" value="1" />
+              <span>z</span><input type="number" id="ratio-az" step="0.1" value="0" />
+            </div>
+          </div>
+          <div class="point-card">
+            <div class="label"><span class="color-dot" style="background:var(--point-b)"></span>B</div>
+            <div class="coord-row">
+              <span>x</span><input type="number" id="ratio-bx" step="0.1" value="5" />
+              <span>y</span><input type="number" id="ratio-by" step="0.1" value="2" />
+              <span>z</span><input type="number" id="ratio-bz" step="0.1" value="0" />
+            </div>
+          </div>
+          <div class="point-card">
+            <div class="label"><span class="color-dot" style="background:var(--point-p)"></span>P (computed)</div>
+            <div id="ratio-p-display">(0.50, 1.50, 0.00)</div>
+          </div>
+        </div>
+        <div class="panel-section">
+          <h2>Formula</h2>
+          <div class="formula-box">
+            <div class="title">Position vector of P</div>
+            <div id="formula-ratio">p = (μ·a + λ·b) / (λ + μ)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROJECTION -->
+      <div class="mode-panel" id="panel-projection">
+        <div class="panel-section">
+          <h2>3D View</h2>
+          <div class="toggle-row"><label>Enable 3D + orbit</label><input type="checkbox" id="proj-3d" /></div>
+          <div class="hint-3d">Drag empty canvas to orbit. Set z-coordinates for true 3D vectors.</div>
+        </div>
+        <div class="panel-section">
+          <h2>Vectors (x, y, z)</h2>
+          <div class="point-card">
+            <div class="label"><span class="color-dot" style="background:var(--point-a)"></span>a</div>
+            <div class="coord-row">
+              <span>x</span><input type="number" id="proj-ax" step="0.1" value="3" />
+              <span>y</span><input type="number" id="proj-ay" step="0.1" value="2" />
+              <span>z</span><input type="number" id="proj-az" step="0.1" value="1" />
+            </div>
+          </div>
+          <div class="point-card">
+            <div class="label"><span class="color-dot" style="background:var(--point-b)"></span>b</div>
+            <div class="coord-row">
+              <span>x</span><input type="number" id="proj-bx" step="0.1" value="4" />
+              <span>y</span><input type="number" id="proj-by" step="0.1" value="0" />
+              <span>z</span><input type="number" id="proj-bz" step="0.1" value="0" />
+            </div>
+          </div>
+        </div>
+        <div class="panel-section">
+          <h2>Display</h2>
+          <div class="toggle-row"><label>Show grid / axes</label><input type="checkbox" id="proj-grid" checked /></div>
+          <div class="toggle-row"><label>Show rejection</label><input type="checkbox" id="show-rejection" /></div>
+          <div class="toggle-row"><label>Snap to grid</label><input type="checkbox" id="proj-snap" /></div>
+        </div>
+        <div class="panel-section">
+          <h2>Live Values</h2>
+          <div class="point-card"><div class="label">a · b</div><div id="val-dot">0</div></div>
+          <div class="point-card"><div class="label">Angle θ</div><div id="val-angle">0°</div></div>
+          <div class="point-card"><div class="label">Scalar proj</div><div id="val-scalar-proj">0</div></div>
+          <div class="point-card"><div class="label">Vector proj</div><div id="val-vec-proj">(0,0,0)</div></div>
+        </div>
+      </div>
+
+      <!-- FOOT -->
+      <div class="mode-panel" id="panel-foot">
+        <div class="panel-section">
+          <h2>3D View</h2>
+          <div class="toggle-row"><label>Enable 3D + orbit</label><input type="checkbox" id="foot-3d" checked /></div>
+          <div class="hint-3d">Best viewed in 3D. Drag empty space to rotate. Cyan = projection link.</div>
+        </div>
+        <div class="panel-section">
+          <h2>Line & Point (x, y, z)</h2>
+          <div class="point-card">
+            <div class="label"><span class="color-dot" style="background:var(--point-a)"></span>A (on line)</div>
+            <div class="coord-row">
+              <span>x</span><input type="number" id="foot-ax" step="0.1" value="-2" />
+              <span>y</span><input type="number" id="foot-ay" step="0.1" value="0" />
+              <span>z</span><input type="number" id="foot-az" step="0.1" value="0" />
+            </div>
+          </div>
+          <div class="point-card">
+            <div class="label"><span class="color-dot" style="background:var(--point-b)"></span>Direction tip D</div>
+            <div class="coord-row">
+              <span>x</span><input type="number" id="foot-dx" step="0.1" value="5" />
+              <span>y</span><input type="number" id="foot-dy" step="0.1" value="1" />
+              <span>z</span><input type="number" id="foot-dz" step="0.1" value="2" />
+            </div>
+          </div>
+          <div class="point-card">
+            <div class="label"><span class="color-dot" style="background:var(--point-p)"></span>External P</div>
+            <div class="coord-row">
+              <span>x</span><input type="number" id="foot-px" step="0.1" value="1" />
+              <span>y</span><input type="number" id="foot-py" step="0.1" value="3" />
+              <span>z</span><input type="number" id="foot-pz" step="0.1" value="1" />
+            </div>
+          </div>
+          <div class="point-card">
+            <div class="label"><span class="color-dot" style="background:var(--point-f)"></span>Foot F</div>
+            <div id="foot-f-display">(0,0,0)</div>
+          </div>
+          <div class="point-card">
+            <div class="label">Distance PF</div>
+            <div id="foot-dist">0</div>
+          </div>
+        </div>
+        <div class="panel-section">
+          <h2>Display</h2>
+          <div class="toggle-row"><label>Show grid / axes</label><input type="checkbox" id="foot-grid" checked /></div>
+          <div class="toggle-row"><label>Show projection link</label><input type="checkbox" id="show-proj-link" checked /></div>
+          <div class="toggle-row"><label>Snap to grid</label><input type="checkbox" id="foot-snap" /></div>
+        </div>
+        <div class="panel-section">
+          <h2>Link to Projection</h2>
+          <div class="formula-box">
+            <div class="title">AF = proj_d (P − A)</div>
+            <div style="font-size:11px;">Cyan arrow is the projection of (P−A) onto the line direction.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LINKED -->
+      <div class="mode-panel" id="panel-linked">
+        <div class="panel-section">
+          <h2>Linked View + 3D</h2>
+          <div class="toggle-row"><label>Enable 3D + orbit</label><input type="checkbox" id="link-3d" checked /></div>
+          <div class="sync-row">
+            <button class="btn small" id="btn-sync-to-foot">Proj → Foot</button>
+            <button class="btn small secondary" id="btn-sync-to-proj">Foot → Proj</button>
+          </div>
+          <div class="hint-3d">Both panels share the same camera rotation when 3D is enabled.</div>
+        </div>
+        <div class="panel-section">
+          <h2>Projection vectors</h2>
+          <div class="point-card">
+            <div class="label"><span class="color-dot" style="background:var(--point-a)"></span>a</div>
+            <div class="coord-row">
+              <span>x</span><input type="number" id="link-ax" step="0.1" value="3" />
+              <span>y</span><input type="number" id="link-ay" step="0.1" value="2" />
+              <span>z</span><input type="number" id="link-az" step="0.1" value="1" />
+            </div>
+          </div>
+          <div class="point-card">
+            <div class="label"><span class="color-dot" style="background:var(--point-b)"></span>b</div>
+            <div class="coord-row">
+              <span>x</span><input type="number" id="link-bx" step="0.1" value="4" />
+              <span>y</span><input type="number" id="link-by" step="0.1" value="0" />
+              <span>z</span><input type="number" id="link-bz" step="0.1" value="0" />
+            </div>
+          </div>
+        </div>
+        <div class="panel-section">
+          <h2>Foot geometry</h2>
+          <div class="point-card">
+            <div class="label"><span class="color-dot" style="background:var(--point-a)"></span>A</div>
+            <div class="coord-row">
+              <span>x</span><input type="number" id="link-foot-ax" step="0.1" value="0" />
+              <span>y</span><input type="number" id="link-foot-ay" step="0.1" value="0" />
+              <span>z</span><input type="number" id="link-foot-az" step="0.1" value="0" />
+            </div>
+          </div>
+          <div class="point-card">
+            <div class="label"><span class="color-dot" style="background:var(--point-p)"></span>P</div>
+            <div class="coord-row">
+              <span>x</span><input type="number" id="link-foot-px" step="0.1" value="3" />
+              <span>y</span><input type="number" id="link-foot-py" step="0.1" value="2" />
+              <span>z</span><input type="number" id="link-foot-pz" step="0.1" value="1" />
+            </div>
+          </div>
+        </div>
+        <div class="panel-section">
+          <h2>Display</h2>
+          <div class="toggle-row"><label>Show grid / axes</label><input type="checkbox" id="link-grid" checked /></div>
+          <div class="toggle-row"><label>Show rejection</label><input type="checkbox" id="link-rejection" /></div>
+          <div class="toggle-row"><label>Snap</label><input type="checkbox" id="link-snap" /></div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="canvas-area" id="canvas-area">
+      <div class="canvas-wrap" id="wrap-main">
+        <canvas id="canvas-main"></canvas>
+        <div class="view-badge" id="view-badge" style="display:none;">3D Orbit</div>
+        <div class="tooltip" id="tooltip"></div>
+      </div>
+      <div class="canvas-wrap half" id="wrap-left" style="display:none;">
+        <div class="canvas-label">Projection</div>
+        <div class="view-badge" id="view-badge-l" style="display:none;">3D</div>
+        <canvas id="canvas-left"></canvas>
+      </div>
+      <div class="canvas-wrap half" id="wrap-right" style="display:none;">
+        <div class="canvas-label">Foot of Perpendicular</div>
+        <div class="view-badge" id="view-badge-r" style="display:none;">3D</div>
+        <canvas id="canvas-right"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <div class="live-formula" id="live-formula">Ready</div>
+    <div class="hint" id="live-hint">Drag points · Type coordinates · Enable 3D then drag empty space to orbit</div>
+  </div>
+
+  <script>
+    const state = {
+      mode: 'ratio', showGrid: true, snap: false, scale: 38,
+      dragging: null, dragCanvas: null, orbiting: false, lastMouse: null,
+      camYaw: 0.4, camPitch: 0.35, use3D: false,
+      A: { x: -4, y: 1, z: 0 }, B: { x: 5, y: 2, z: 0 },
+      lambda: 1, mu: 1, internal: true, showPosVecs: true,
+      vecA: { x: 3, y: 2, z: 1 }, vecB: { x: 4, y: 0, z: 0 }, showRejection: false,
+      footA: { x: -2, y: 0, z: 0 }, footD: { x: 5, y: 1, z: 2 }, footP: { x: 1, y: 3, z: 1 }, showProjLink: true,
+      linkA: { x: 3, y: 2, z: 1 }, linkB: { x: 4, y: 0, z: 0 },
+      linkFootA: { x: 0, y: 0, z: 0 }, linkFootP: { x: 3, y: 2, z: 1 }, linkRejection: false
+    };
+
+    function v3(x,y,z){return{x,y,z:z||0};}
+    function dot(u,v){return u.x*v.x+u.y*v.y+(u.z||0)*(v.z||0);}
+    function mag(v){return Math.sqrt(dot(v,v));}
+    function sub(u,v){return{x:u.x-v.x,y:u.y-v.y,z:(u.z||0)-(v.z||0)};}
+    function add(u,v){return{x:u.x+v.x,y:u.y+v.y,z:(u.z||0)+(v.z||0)};}
+    function scaleV(v,k){return{x:v.x*k,y:v.y*k,z:(v.z||0)*k};}
+    function fmt(n){return(Math.round(n*100)/100).toFixed(2);}
+    function fmt3(p){return`(${fmt(p.x)}, ${fmt(p.y)}, ${fmt(p.z||0)})`;}
+
+    function computeRatioP(){
+      const{A,B,lambda,mu,internal}=state;
+      if(internal){const d=lambda+mu;return{x:(mu*A.x+lambda*B.x)/d,y:(mu*A.y+lambda*B.y)/d,z:(mu*(A.z||0)+lambda*(B.z||0))/d};}
+      const d=mu-lambda;if(Math.abs(d)<1e-9)return{x:(A.x+B.x)/2,y:(A.y+B.y)/2,z:((A.z||0)+(B.z||0))/2};
+      return{x:(mu*A.x-lambda*B.x)/d,y:(mu*A.y-lambda*B.y)/d,z:(mu*(A.z||0)-lambda*(B.z||0))/d};
+    }
+    function computeProjection(a,b){
+      const b2=dot(b,b);if(b2<1e-12)return{proj:v3(0,0,0),scalar:0,rejection:{...a},angle:0,dval:0};
+      const dval=dot(a,b);const scalar=dval/Math.sqrt(b2);const proj=scaleV(b,dval/b2);const rejection=sub(a,proj);
+      const cos=Math.max(-1,Math.min(1,dval/((mag(a)*mag(b))||1)));
+      return{proj,scalar,rejection,angle:Math.acos(cos)*180/Math.PI,dval};
+    }
+    function computeFoot(A,D,P){
+      const d=sub(D,A);const AP=sub(P,A);const d2=dot(d,d);
+      if(d2<1e-12)return{F:{...A},dist:mag(AP),proj:v3(0,0,0),d};
+      const t=dot(AP,d)/d2;const AF=scaleV(d,t);const F=add(A,AF);
+      return{F,dist:mag(sub(P,F)),proj:AF,d,t};
+    }
+
+    function rotatePoint(p){
+      const yaw=state.camYaw,pitch=state.camPitch;
+      let x=p.x,y=p.y,z=p.z||0;
+      let x1=x*Math.cos(yaw)-z*Math.sin(yaw);let z1=x*Math.sin(yaw)+z*Math.cos(yaw);
+      let y2=y*Math.cos(pitch)-z1*Math.sin(pitch);let z2=y*Math.sin(pitch)+z1*Math.cos(pitch);
+      return{x:x1,y:y2,z:z2};
+    }
+    function project3D(p,ox,oy,scale){
+      const r=rotatePoint(p);const persp=1/(1+r.z*0.04);
+      return{x:ox+r.x*scale*persp,y:oy-r.y*scale*persp,depth:r.z};
+    }
+    function toScreen2D(p,ox,oy,scale){return{x:ox+p.x*scale,y:oy-p.y*scale};}
+
+    function setupCanvas(canvas){
+      const wrap=canvas.parentElement;const dpr=devicePixelRatio||1;
+      canvas.width=wrap.clientWidth*dpr;canvas.height=wrap.clientHeight*dpr;
+      canvas.style.width=wrap.clientWidth+'px';canvas.style.height=wrap.clientHeight+'px';
+      const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+      return{ctx,w:wrap.clientWidth,h:wrap.clientHeight,ox:wrap.clientWidth/2,oy:wrap.clientHeight/2};
+    }
+
+    function drawGrid(ctx,w,h,ox,oy,scale,is3D){
+      if(!state.showGrid)return;
+      if(!is3D){
+        ctx.strokeStyle='#1f2937';ctx.lineWidth=1;const step=scale;
+        for(let x=ox%step;x<w;x+=step){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+        for(let y=oy%step;y<h;y+=step){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+        ctx.strokeStyle='#374151';ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.moveTo(0,oy);ctx.lineTo(w,oy);ctx.moveTo(ox,0);ctx.lineTo(ox,h);ctx.stroke();
+      }else{
+        const axisLen=6,O=v3(0,0,0);
+        const ends=[v3(axisLen,0,0),v3(0,axisLen,0),v3(0,0,axisLen)];
+        const colors=['#ef4444','#22c55e','#3b82f6'];const labels=['X','Y','Z'];
+        for(let i=0;i<3;i++){
+          const a=project3D(O,ox,oy,scale);const b=project3D(ends[i],ox,oy,scale);
+          ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+          ctx.strokeStyle=colors[i];ctx.lineWidth=1.5;ctx.stroke();
+          ctx.fillStyle=colors[i];ctx.font='11px system-ui';ctx.fillText(labels[i],b.x+4,b.y-4);
+        }
+      }
+    }
+
+    function drawPoint(ctx,p,color,label,ox,oy,scale,is3D){
+      const s=is3D?project3D(p,ox,oy,scale):toScreen2D(p,ox,oy,scale);
+      ctx.beginPath();ctx.arc(s.x,s.y,8,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
+      ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+      ctx.fillStyle='#fff';ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(label,s.x,s.y);return s;
+    }
+    function drawArrow(ctx,from,to,color,width,dashed,ox,oy,scale,is3D){
+      const s1=is3D?project3D(from,ox,oy,scale):toScreen2D(from,ox,oy,scale);
+      const s2=is3D?project3D(to,ox,oy,scale):toScreen2D(to,ox,oy,scale);
+      ctx.beginPath();ctx.moveTo(s1.x,s1.y);ctx.lineTo(s2.x,s2.y);
+      ctx.strokeStyle=color;ctx.lineWidth=width||2.5;ctx.setLineDash(dashed?[6,4]:[]);ctx.stroke();ctx.setLineDash([]);
+      const angle=Math.atan2(s2.y-s1.y,s2.x-s1.x);const head=10;
+      ctx.beginPath();ctx.moveTo(s2.x,s2.y);
+      ctx.lineTo(s2.x-head*Math.cos(angle-0.35),s2.y-head*Math.sin(angle-0.35));
+      ctx.lineTo(s2.x-head*Math.cos(angle+0.35),s2.y-head*Math.sin(angle+0.35));
+      ctx.closePath();ctx.fillStyle=color;ctx.fill();
+    }
+    function drawSegment(ctx,from,to,color,width,ox,oy,scale,is3D){
+      const s1=is3D?project3D(from,ox,oy,scale):toScreen2D(from,ox,oy,scale);
+      const s2=is3D?project3D(to,ox,oy,scale):toScreen2D(to,ox,oy,scale);
+      ctx.beginPath();ctx.moveTo(s1.x,s1.y);ctx.lineTo(s2.x,s2.y);
+      ctx.strokeStyle=color;ctx.lineWidth=width||2;ctx.setLineDash([]);ctx.stroke();
+    }
+
+    function drawRatioOn(ctx,w,h,ox,oy,scale,is3D){
+      drawGrid(ctx,w,h,ox,oy,scale,is3D);const P=computeRatioP();
+      drawSegment(ctx,state.A,state.B,'#4b5563',2,ox,oy,scale,is3D);
+      if(state.showPosVecs){const O=v3(0,0,0);
+        drawArrow(ctx,O,state.A,'rgba(239,68,68,0.45)',2,true,ox,oy,scale,is3D);
+        drawArrow(ctx,O,state.B,'rgba(34,197,94,0.45)',2,true,ox,oy,scale,is3D);
+        drawArrow(ctx,O,P,'rgba(168,85,247,0.75)',2.5,false,ox,oy,scale,is3D);
+      }
+      drawSegment(ctx,state.A,P,'rgba(168,85,247,0.55)',3,ox,oy,scale,is3D);
+      drawSegment(ctx,P,state.B,'rgba(168,85,247,0.25)',3,ox,oy,scale,is3D);
+      drawPoint(ctx,state.A,'#ef4444','A',ox,oy,scale,is3D);
+      drawPoint(ctx,state.B,'#22c55e','B',ox,oy,scale,is3D);
+      drawPoint(ctx,P,'#a855f7','P',ox,oy,scale,is3D);
+      document.getElementById('ratio-p-display').textContent=fmt3(P);
+      document.getElementById('live-formula').textContent=`p = (${state.mu}·a + ${state.lambda}·b)/(${state.lambda}+${state.mu}) = ${fmt3(P)}`;
+    }
+
+    function drawProjectionOn(ctx,w,h,ox,oy,scale,a,b,showRej,is3D){
+      drawGrid(ctx,w,h,ox,oy,scale,is3D);const O=v3(0,0,0);
+      const{proj,scalar,rejection,angle,dval}=computeProjection(a,b);
+      drawArrow(ctx,O,b,'#22c55e',2.5,false,ox,oy,scale,is3D);
+      drawArrow(ctx,O,a,'#ef4444',2.5,false,ox,oy,scale,is3D);
+      drawArrow(ctx,O,proj,'#38bdf8',3,false,ox,oy,scale,is3D);
+      drawSegment(ctx,a,proj,'rgba(56,189,248,0.5)',1.5,ox,oy,scale,is3D);
+      if(showRej)drawArrow(ctx,proj,a,'#f97316',2,true,ox,oy,scale,is3D);
+      drawPoint(ctx,O,'#6b7280','O',ox,oy,scale,is3D);
+      drawPoint(ctx,a,'#ef4444','a',ox,oy,scale,is3D);
+      drawPoint(ctx,b,'#22c55e','b',ox,oy,scale,is3D);
+      drawPoint(ctx,proj,'#38bdf8','proj',ox,oy,scale,is3D);
+      return{proj,scalar,angle,dval};
+    }
+
+    function drawFootOn(ctx,w,h,ox,oy,scale,A,D,P,showLink,is3D){
+      drawGrid(ctx,w,h,ox,oy,scale,is3D);
+      const{F,dist,proj,d}=computeFoot(A,D,P);
+      const len=9;const dMag=mag(d)||1;const dUnit=scaleV(d,1/dMag);
+      drawSegment(ctx,add(A,scaleV(dUnit,-len)),add(A,scaleV(dUnit,len)),'#4b5563',2,ox,oy,scale,is3D);
+      drawArrow(ctx,A,D,'#22c55e',2.5,false,ox,oy,scale,is3D);
+      drawArrow(ctx,A,P,'rgba(168,85,247,0.4)',2,true,ox,oy,scale,is3D);
+      if(showLink)drawArrow(ctx,A,F,'#38bdf8',3,false,ox,oy,scale,is3D);
+      drawSegment(ctx,F,P,'#f59e0b',2.5,ox,oy,scale,is3D);
+      drawPoint(ctx,A,'#ef4444','A',ox,oy,scale,is3D);
+      drawPoint(ctx,D,'#22c55e','d',ox,oy,scale,is3D);
+      drawPoint(ctx,P,'#a855f7','P',ox,oy,scale,is3D);
+      drawPoint(ctx,F,'#f59e0b','F',ox,oy,scale,is3D);
+      return{F,dist};
+    }
+
+    const canvasMain=document.getElementById('canvas-main');
+    const canvasLeft=document.getElementById('canvas-left');
+    const canvasRight=document.getElementById('canvas-right');
+    const tooltip=document.getElementById('tooltip');
+
+    function current3D(){
+      if(state.mode==='ratio')return document.getElementById('ratio-3d').checked;
+      if(state.mode==='projection')return document.getElementById('proj-3d').checked;
+      if(state.mode==='foot')return document.getElementById('foot-3d').checked;
+      if(state.mode==='linked')return document.getElementById('link-3d').checked;
+      return false;
+    }
+    function updateBadges(is3D){
+      const disp=is3D?'block':'none';
+      document.getElementById('view-badge').style.display=(state.mode!=='linked'&&is3D)?'block':'none';
+      document.getElementById('view-badge-l').style.display=disp;
+      document.getElementById('view-badge-r').style.display=disp;
+    }
+
+    function draw(){
+      const is3D=current3D();state.use3D=is3D;updateBadges(is3D);
+      if(state.mode==='linked'){
+        const left=setupCanvas(canvasLeft);const right=setupCanvas(canvasRight);
+        const res=drawProjectionOn(left.ctx,left.w,left.h,left.ox,left.oy,state.scale,state.linkA,state.linkB,state.linkRejection,is3D);
+        const D=add(state.linkFootA,state.linkB);
+        const footRes=drawFootOn(right.ctx,right.w,right.h,right.ox,right.oy,state.scale,state.linkFootA,D,state.linkFootP,true,is3D);
+        document.getElementById('live-formula').textContent=`proj = ${fmt3(res.proj)}  |  F = ${fmt3(footRes.F)}  |  dist = ${fmt(footRes.dist)}`;
+        document.getElementById('live-hint').textContent=is3D?'3D Linked · Drag empty space to orbit both · Sync transfers values':'Linked View · Enable 3D for orbit';
+      }else{
+        const main=setupCanvas(canvasMain);
+        if(state.mode==='ratio'){
+          drawRatioOn(main.ctx,main.w,main.h,main.ox,main.oy,state.scale,is3D);
+          document.getElementById('live-hint').textContent=is3D?'3D Ratio · Drag points or empty space to orbit':'Drag A/B/P or type coords · Enable 3D';
+        }else if(state.mode==='projection'){
+          const res=drawProjectionOn(main.ctx,main.w,main.h,main.ox,main.oy,state.scale,state.vecA,state.vecB,state.showRejection,is3D);
+          document.getElementById('val-dot').textContent=fmt(res.dval);
+          document.getElementById('val-angle').textContent=fmt(res.angle)+'°';
+          document.getElementById('val-scalar-proj').textContent=fmt(res.scalar);
+          document.getElementById('val-vec-proj').textContent=fmt3(res.proj);
+          document.getElementById('live-formula').textContent=`proj = ${fmt3(res.proj)}  |  a·b = ${fmt(res.dval)}  |  θ = ${fmt(res.angle)}°`;
+          document.getElementById('live-hint').textContent=is3D?'3D Projection · Drag tips or empty space to orbit':'Drag tips or type coordinates';
+        }else if(state.mode==='foot'){
+          const res=drawFootOn(main.ctx,main.w,main.h,main.ox,main.oy,state.scale,state.footA,state.footD,state.footP,state.showProjLink,is3D);
+          document.getElementById('foot-f-display').textContent=fmt3(res.F);
+          document.getElementById('foot-dist').textContent=fmt(res.dist);
+          document.getElementById('live-formula').textContent=`F = ${fmt3(res.F)}  |  AF = proj_d (P−A)  |  dist = ${fmt(res.dist)}`;
+          document.getElementById('live-hint').textContent=is3D?'3D Foot · Drag points or empty space to orbit · Cyan = projection':'Drag A/D/P · Enable 3D for best view';
+        }
+      }
+    }
+    window.addEventListener('resize',draw);
+
+    function getMouse(e,canvas){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
+    function hitTest(sx,sy,ox,oy,scale,targets,is3D){
+      for(const t of targets){
+        const s=is3D?project3D(t.p,ox,oy,scale):toScreen2D(t.p,ox,oy,scale);
+        const dx=s.x-sx,dy=s.y-sy;if(dx*dx+dy*dy<14*14)return t.name;
+      }
+      return null;
+    }
+
+    function attachInteractions(canvas,getTargets,onDrag){
+      canvas.addEventListener('mousedown',e=>{
+        const pos=getMouse(e,canvas);const info=setupCanvas(canvas);const is3D=current3D();
+        const targets=getTargets();const hit=hitTest(pos.x,pos.y,info.ox,info.oy,state.scale,targets,is3D);
+        if(hit){state.dragging=hit;state.dragCanvas=canvas;canvas.classList.add('dragging');}
+        else if(is3D){state.orbiting=true;state.lastMouse=pos;state.dragCanvas=canvas;canvas.classList.add('orbiting');}
+      });
+      canvas.addEventListener('mousemove',e=>{
+        const pos=getMouse(e,canvas);const info=setupCanvas(canvas);const is3D=current3D();
+        if(state.orbiting&&state.dragCanvas===canvas){
+          const dx=pos.x-state.lastMouse.x;const dy=pos.y-state.lastMouse.y;
+          state.camYaw+=dx*0.01;state.camPitch=Math.max(-1.2,Math.min(1.2,state.camPitch+dy*0.01));
+          state.lastMouse=pos;draw();return;
+        }
+        if(!state.dragging||state.dragCanvas!==canvas){
+          const targets=getTargets();const hit=hitTest(pos.x,pos.y,info.ox,info.oy,state.scale,targets,is3D);
+          if(hit){tooltip.textContent='Drag '+hit;tooltip.style.left=(pos.x+12)+'px';tooltip.style.top=(pos.y+12)+'px';tooltip.classList.add('visible');}
+          else{tooltip.classList.remove('visible');}
+          return;
+        }
+        tooltip.classList.remove('visible');
+        let world;
+        if(is3D){
+          const prev=getTargets().find(t=>t.name===state.dragging);if(!prev)return;
+          const screenPrev=project3D(prev.p,info.ox,info.oy,state.scale);
+          const invScale=1/state.scale;
+          const dx=(pos.x-screenPrev.x)*invScale;const dy=-(pos.y-screenPrev.y)*invScale;
+          const yaw=state.camYaw;
+          world={x:prev.p.x+dx*Math.cos(-yaw),y:prev.p.y+dy,z:(prev.p.z||0)+dx*Math.sin(-yaw)*0.5};
+        }else{
+          world={x:(pos.x-info.ox)/state.scale,y:(info.oy-pos.y)/state.scale,z:0};
+        }
+        if(state.snap){world.x=Math.round(world.x);world.y=Math.round(world.y);world.z=Math.round(world.z||0);}
+        onDrag(state.dragging,world);syncInputsFromState();draw();
+      });
+    }
+    window.addEventListener('mouseup',()=>{
+      state.dragging=null;state.orbiting=false;state.dragCanvas=null;
+      document.querySelectorAll('canvas').forEach(c=>c.classList.remove('dragging','orbiting'));
+    });
+
+    attachInteractions(canvasMain,()=>{
+      if(state.mode==='ratio'){const P=computeRatioP();return[{name:'A',p:state.A},{name:'B',p:state.B},{name:'P',p:P}];}
+      if(state.mode==='projection')return[{name:'vecA',p:state.vecA},{name:'vecB',p:state.vecB}];
+      if(state.mode==='foot')return[{name:'footA',p:state.footA},{name:'footD',p:state.footD},{name:'footP',p:state.footP}];
+      return[];
+    },(name,world)=>{
+      if(state.mode==='ratio'){
+        if(name==='A')state.A=world;else if(name==='B')state.B=world;
+        else if(name==='P'&&state.internal){
+          const A=state.A,B=state.B;const ABx=B.x-A.x,ABy=B.y-A.y;const len2=ABx*ABx+ABy*ABy;
+          if(len2>1e-8){let t=((world.x-A.x)*ABx+(world.y-A.y)*ABy)/len2;t=Math.max(0.02,Math.min(0.98,t));
+            const r=t/(1-t);state.lambda=r>1?Math.round(r*10)/10:1;state.mu=r>1?1:Math.round((1/r)*10)/10;}
+        }
+      }else if(state.mode==='projection'){if(name==='vecA')state.vecA=world;else if(name==='vecB')state.vecB=world;}
+      else if(state.mode==='foot'){if(name==='footA')state.footA=world;else if(name==='footD')state.footD=world;else if(name==='footP')state.footP=world;}
+    });
+
+    attachInteractions(canvasLeft,()=>[{name:'linkA',p:state.linkA},{name:'linkB',p:state.linkB}],(name,world)=>{
+      if(name==='linkA')state.linkA=world;else if(name==='linkB')state.linkB=world;
+    });
+    attachInteractions(canvasRight,()=>{
+      const D=add(state.linkFootA,state.linkB);
+      return[{name:'linkFootA',p:state.linkFootA},{name:'linkD',p:D},{name:'linkFootP',p:state.linkFootP}];
+    },(name,world)=>{
+      if(name==='linkFootA')state.linkFootA=world;
+      else if(name==='linkD')state.linkB=sub(world,state.linkFootA);
+      else if(name==='linkFootP')state.linkFootP=world;
+    });
+
+    const modeDescs={
+      ratio:'Point P divides AB in ratio λ:μ. Enable 3D then drag empty space to orbit.',
+      projection:'Projection of a onto b. Enable 3D for orbit rotation.',
+      foot:'Foot of perpendicular. Best in 3D — drag empty space to rotate.',
+      linked:'Side-by-side Projection + Foot. Shared 3D camera when enabled.'
+    };
+    function setMode(mode){
+      state.mode=mode;
+      document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
+      document.getElementById('mode-desc').textContent=modeDescs[mode];
+      document.querySelectorAll('.mode-panel').forEach(p=>p.classList.remove('active'));
+      document.getElementById('panel-'+mode).classList.add('active');
+      const isLinked=mode==='linked';
+      document.getElementById('wrap-main').style.display=isLinked?'none':'block';
+      document.getElementById('wrap-left').style.display=isLinked?'block':'none';
+      document.getElementById('wrap-right').style.display=isLinked?'block':'none';
+      const tipParent=isLinked?document.getElementById('wrap-left'):document.getElementById('wrap-main');
+      tipParent.appendChild(tooltip);syncInputsFromState();draw();
+    }
+    document.querySelectorAll('.mode-btn').forEach(btn=>btn.addEventListener('click',()=>setMode(btn.dataset.mode)));
+
+    function syncInputsFromState(){
+      const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v;};
+      set('ratio-ax',state.A.x);set('ratio-ay',state.A.y);set('ratio-az',state.A.z||0);
+      set('ratio-bx',state.B.x);set('ratio-by',state.B.y);set('ratio-bz',state.B.z||0);
+      set('lambda',state.lambda);set('mu',state.mu);
+      document.getElementById('ratio-slider').value=(state.lambda/(state.lambda+state.mu))*100;
+      set('proj-ax',state.vecA.x);set('proj-ay',state.vecA.y);set('proj-az',state.vecA.z||0);
+      set('proj-bx',state.vecB.x);set('proj-by',state.vecB.y);set('proj-bz',state.vecB.z||0);
+      set('foot-ax',state.footA.x);set('foot-ay',state.footA.y);set('foot-az',state.footA.z||0);
+      set('foot-dx',state.footD.x);set('foot-dy',state.footD.y);set('foot-dz',state.footD.z||0);
+      set('foot-px',state.footP.x);set('foot-py',state.footP.y);set('foot-pz',state.footP.z||0);
+      set('link-ax',state.linkA.x);set('link-ay',state.linkA.y);set('link-az',state.linkA.z||0);
+      set('link-bx',state.linkB.x);set('link-by',state.linkB.y);set('link-bz',state.linkB.z||0);
+      set('link-foot-ax',state.linkFootA.x);set('link-foot-ay',state.linkFootA.y);set('link-foot-az',state.linkFootA.z||0);
+      set('link-foot-px',state.linkFootP.x);set('link-foot-py',state.linkFootP.y);set('link-foot-pz',state.linkFootP.z||0);
+    }
+    function bind3(idBase,obj){
+      ['x','y','z'].forEach(c=>{
+        const el=document.getElementById(idBase+c);if(!el)return;
+        el.addEventListener('change',e=>{const v=parseFloat(e.target.value);if(!isNaN(v)){obj[c]=v;draw();}});
+      });
+    }
+    bind3('ratio-a',state.A);bind3('ratio-b',state.B);
+    bind3('proj-a',state.vecA);bind3('proj-b',state.vecB);
+    bind3('foot-a',state.footA);bind3('foot-d',state.footD);bind3('foot-p',state.footP);
+    bind3('link-a',state.linkA);bind3('link-b',state.linkB);
+    bind3('link-foot-a',state.linkFootA);bind3('link-foot-p',state.linkFootP);
+
+    document.getElementById('lambda').addEventListener('input',e=>{
+      state.lambda=Math.max(0.1,parseFloat(e.target.value)||0.1);
+      document.getElementById('ratio-slider').value=(state.lambda/(state.lambda+state.mu))*100;draw();
+    });
+    document.getElementById('mu').addEventListener('input',e=>{
+      state.mu=Math.max(0.1,parseFloat(e.target.value)||0.1);
+      document.getElementById('ratio-slider').value=(state.lambda/(state.lambda+state.mu))*100;draw();
+    });
+    document.getElementById('ratio-slider').addEventListener('input',e=>{
+      const t=parseFloat(e.target.value)/100;
+      if(t<0.05){state.lambda=0.2;state.mu=4;}else if(t>0.95){state.lambda=4;state.mu=0.2;}
+      else{const r=t/(1-t);state.lambda=r>=1?Math.round(r*10)/10:1;state.mu=r>=1?1:Math.round((1/r)*10)/10;}
+      document.getElementById('lambda').value=state.lambda;document.getElementById('mu').value=state.mu;draw();
+    });
+    document.getElementById('internal').addEventListener('change',e=>{state.internal=e.target.checked;draw();});
+
+    ['show-grid','show-pos-vecs','snap','proj-grid','show-rejection','proj-snap',
+     'foot-grid','show-proj-link','foot-snap','link-grid','link-rejection','link-snap',
+     'ratio-3d','proj-3d','foot-3d','link-3d'].forEach(id=>{
+      const el=document.getElementById(id);if(!el)return;
+      el.addEventListener('change',()=>{
+        if(id.includes('grid')||id==='show-grid')state.showGrid=el.checked;
+        if(id==='show-pos-vecs')state.showPosVecs=el.checked;
+        if(id.includes('snap'))state.snap=el.checked;
+        if(id==='show-rejection')state.showRejection=el.checked;
+        if(id==='show-proj-link')state.showProjLink=el.checked;
+        if(id==='link-rejection')state.linkRejection=el.checked;
+        draw();
+      });
+    });
+
+    document.getElementById('btn-sync-to-foot').addEventListener('click',()=>{
+      state.linkFootA=v3(0,0,0);state.linkFootP={...state.linkA};syncInputsFromState();draw();
+    });
+    document.getElementById('btn-sync-to-proj').addEventListener('click',()=>{
+      state.linkA=sub(state.linkFootP,state.linkFootA);syncInputsFromState();draw();
+    });
+    document.getElementById('btn-reset-cam').addEventListener('click',()=>{state.camYaw=0.4;state.camPitch=0.35;draw();});
+    document.getElementById('btn-reset').addEventListener('click',()=>{
+      if(state.mode==='ratio'){state.A=v3(-4,1,0);state.B=v3(5,2,0);state.lambda=1;state.mu=1;state.internal=true;}
+      else if(state.mode==='projection'){state.vecA=v3(3,2,1);state.vecB=v3(4,0,0);}
+      else if(state.mode==='foot'){state.footA=v3(-2,0,0);state.footD=v3(5,1,2);state.footP=v3(1,3,1);}
+      else{state.linkA=v3(3,2,1);state.linkB=v3(4,0,0);state.linkFootA=v3(0,0,0);state.linkFootP=v3(3,2,1);}
+      syncInputsFromState();draw();
+    });
+    document.getElementById('btn-challenge').addEventListener('click',()=>{
+      if(state.mode==='foot'||state.mode==='linked')alert('Challenge: Enable 3D, rotate the scene, and observe the cyan projection and foot F.');
+      else if(state.mode==='projection'){
+        state.vecA=v3((Math.random()-0.3)*5,(Math.random()-0.3)*4,(Math.random()-0.3)*3);
+        state.vecB=v3(1+Math.random()*3,(Math.random()-0.5)*2,(Math.random()-0.5)*2);
+        alert('Challenge: Make a and b perpendicular (dot product ≈ 0) in 3D.');
+      }else{
+        state.A=v3((Math.random()-0.5)*6,(Math.random()-0.5)*4,(Math.random()-0.5)*2);
+        state.B=v3((Math.random()-0.5)*6,(Math.random()-0.5)*4,(Math.random()-0.5)*2);
+        const c=[[1,2],[2,1],[1,3],[3,2]][Math.floor(Math.random()*4)];
+        state.lambda=c[0];state.mu=c[1];alert(`Challenge: Achieve ratio ${c[0]}:${c[1]}.`);
+      }
+      syncInputsFromState();draw();
+    });
+
+    syncInputsFromState();draw();
+  </script>
+</body>
+</html>

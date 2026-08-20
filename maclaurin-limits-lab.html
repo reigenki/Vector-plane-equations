@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>H2 Math – Maclaurin & Limits Lab</title>
+  <style>
+    :root {
+      --bg: #0f1419; --panel: #1a2332; --canvas-bg: #0b1120;
+      --accent: #3b82f6; --accent-hover: #2563eb;
+      --text: #e5e7eb; --muted: #9ca3af; --border: #374151;
+      --success: #22c55e; --warning: #f59e0b; --series: #a78bfa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .top-bar {
+      height: 48px; background: var(--panel); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 16px; gap: 12px; flex-shrink: 0;
+    }
+    .top-bar h1 { font-size: 15px; font-weight: 600; }
+    .badge { background: var(--accent); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 999px; }
+    .spacer { flex: 1; }
+    .btn {
+      background: var(--accent); color: #fff; border: none; padding: 6px 12px;
+      border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 500;
+    }
+    .btn:hover { background: var(--accent-hover); }
+    .btn.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn.secondary:hover { background: #1f2937; }
+    .btn.small { padding: 5px 10px; font-size: 12px; }
+
+    .main { flex: 1; display: flex; min-height: 0; }
+    .left-panel {
+      width: 330px; background: var(--panel); border-right: 1px solid var(--border);
+      padding: 14px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex-shrink: 0;
+    }
+    .panel-section h2 {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--muted); margin-bottom: 8px;
+    }
+    .mode-toggle { display: flex; gap: 6px; }
+    .mode-btn {
+      flex: 1; padding: 8px; background: var(--bg); border: 1px solid var(--border);
+      color: var(--muted); border-radius: 6px; font-size: 12px; cursor: pointer; text-align: center;
+    }
+    .mode-btn.active { background: #1e3a5f; color: #93c5fd; border-color: var(--accent); }
+    .mode-btn:hover { background: #1f2937; color: var(--text); }
+
+    select, input[type="number"] {
+      width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      padding: 7px 8px; border-radius: 6px; font-size: 13px;
+    }
+    input[type="number"] { width: 70px; text-align: center; }
+    .row { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+    .hint-box {
+      font-size: 12px; color: var(--muted); background: #0c1220; border: 1px solid var(--border);
+      border-radius: 6px; padding: 8px 10px; line-height: 1.45; margin-top: 6px;
+    }
+    .series-card {
+      background: #0c1220; border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px; margin-bottom: 6px; font-family: 'Cambria Math', 'Times New Roman', serif;
+      font-size: 14px; line-height: 1.5;
+    }
+    .series-card .name { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 11px; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+
+    .workspace { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--canvas-bg); }
+    .steps-area {
+      flex: 1; padding: 18px 22px; overflow-y: auto;
+      font-family: 'Cambria Math', 'Times New Roman', serif; font-size: 16px; line-height: 1.65;
+    }
+    .step {
+      margin-bottom: 12px; padding: 10px 14px; background: rgba(26,35,50,0.75);
+      border-radius: 8px; border-left: 3px solid var(--border);
+    }
+    .step.active { border-left-color: var(--accent); }
+    .step.success { border-left-color: var(--success); }
+    .step .label {
+      font-family: 'Segoe UI', system-ui, sans-serif; font-size: 11px;
+      text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 4px;
+    }
+    .highlight { color: #7dd3fc; }
+    .series-term { color: #c4b5fd; }
+
+    .controls-bar {
+      padding: 12px 20px; background: var(--panel); border-top: 1px solid var(--border);
+      display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    }
+    .bottom-bar {
+      height: 48px; background: var(--panel); border-top: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 16px; gap: 16px; flex-shrink: 0; font-size: 13px;
+    }
+    .bottom-bar .status { flex: 1; color: var(--muted); }
+
+    .limit-expr {
+      font-size: 20px; text-align: center; padding: 12px;
+      background: #0c1220; border-radius: 8px; border: 1px solid var(--border);
+      font-family: 'Cambria Math', 'Times New Roman', serif;
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <h1>Maclaurin & Limits Lab</h1>
+    <span class="badge">H2 Math Prototype</span>
+    <div class="spacer"></div>
+    <button class="btn secondary" id="btn-new">New Example</button>
+    <button class="btn" id="btn-hint">Hint</button>
+  </div>
+
+  <div class="main">
+    <aside class="left-panel">
+      <div class="panel-section">
+        <h2>Mode</h2>
+        <div class="mode-toggle">
+          <button class="mode-btn active" data-mode="expand">Expand Series</button>
+          <button class="mode-btn" data-mode="limit">Limits via Series</button>
+        </div>
+      </div>
+
+      <!-- EXPAND MODE -->
+      <div id="panel-expand">
+        <div class="panel-section">
+          <h2>Function</h2>
+          <select id="fn-select">
+            <option value="exp">eˣ</option>
+            <option value="sin">sin x</option>
+            <option value="cos">cos x</option>
+            <option value="ln">ln(1+x)</option>
+            <option value="binom">(1+x)ⁿ</option>
+            <option value="expsin">eˣ sin x</option>
+            <option value="expcos">eˣ cos x</option>
+          </select>
+        </div>
+        <div class="panel-section">
+          <h2>Up to power</h2>
+          <div class="row">
+            <input type="number" id="power" value="3" min="1" max="6" step="1" />
+            <span style="color:var(--muted);font-size:13px;">(term in x<sup>k</sup>)</span>
+          </div>
+        </div>
+        <div class="panel-section">
+          <h2>Standard series (reference)</h2>
+          <div class="series-card"><div class="name">eˣ</div>1 + x + x²/2! + x³/3! + …</div>
+          <div class="series-card"><div class="name">sin x</div>x − x³/3! + x⁵/5! − …</div>
+          <div class="series-card"><div class="name">cos x</div>1 − x²/2! + x⁴/4! − …</div>
+          <div class="series-card"><div class="name">ln(1+x)</div>x − x²/2 + x³/3 − x⁴/4 + … (|x|&lt;1)</div>
+        </div>
+      </div>
+
+      <!-- LIMIT MODE -->
+      <div id="panel-limit" style="display:none">
+        <div class="panel-section">
+          <h2>Limit example</h2>
+          <select id="limit-select">
+            <option value="sinx_x3">lim (sin x − x) / x³</option>
+            <option value="ex_quad">lim (eˣ − 1 − x − x²/2) / x³</option>
+            <option value="one_cos">lim (1 − cos x) / (x sin x)</option>
+            <option value="ln_x3">lim (ln(1+x) − x + x²/2) / x³</option>
+            <option value="sin_tan">lim (x − sin x) / (x − tan x)</option>
+          </select>
+        </div>
+        <div class="panel-section">
+          <h2>Expression</h2>
+          <div class="limit-expr" id="limit-expr">lim<sub>x→0</sub> (sin x − x) / x³</div>
+        </div>
+        <div class="panel-section">
+          <h2>Tip</h2>
+          <div class="hint-box">
+            Expand numerator and denominator far enough that the lowest power of x does not cancel completely, then take the limit.
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <div class="steps-area" id="steps-area">
+        <div class="step active">
+          <div class="label">Maclaurin Expansion</div>
+          Choose a function and the highest power, then press “Expand”.
+        </div>
+      </div>
+      <div class="controls-bar">
+        <button class="btn" id="btn-run">Expand / Resolve Limit</button>
+        <button class="btn secondary" id="btn-reset">Reset Steps</button>
+        <button class="btn secondary small" id="btn-answer">Show Final Answer</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <div class="status" id="status">Expand mode · Select a function and press Expand</div>
+  </div>
+
+  <script>
+    let mode = 'expand';
+    let currentLimit = 'sinx_x3';
+
+    const stepsArea = document.getElementById('steps-area');
+    const status = document.getElementById('status');
+
+    const LIMITS = {
+      sinx_x3: {
+        expr: 'lim<sub>x→0</sub> (sin x − x) / x³',
+        answer: '−1/6',
+        steps: [
+          ['Expansion', 'sin x = x − x³/6 + x⁵/120 − ⋯'],
+          ['Numerator', 'sin x − x = −x³/6 + x⁵/120 − ⋯'],
+          ['Divide', '(sin x − x)/x³ = −1/6 + x²/120 − ⋯'],
+          ['Limit', 'As x → 0 the expression tends to <span class="highlight">−1/6</span>']
+        ]
+      },
+      ex_quad: {
+        expr: 'lim<sub>x→0</sub> (eˣ − 1 − x − x²/2) / x³',
+        answer: '1/6',
+        steps: [
+          ['Expansion', 'eˣ = 1 + x + x²/2 + x³/6 + x⁴/24 + ⋯'],
+          ['Numerator', 'eˣ − 1 − x − x²/2 = x³/6 + x⁴/24 + ⋯'],
+          ['Divide', '(…)/x³ = 1/6 + x/24 + ⋯'],
+          ['Limit', 'As x → 0 the expression tends to <span class="highlight">1/6</span>']
+        ]
+      },
+      one_cos: {
+        expr: 'lim<sub>x→0</sub> (1 − cos x) / (x sin x)',
+        answer: '1/2',
+        steps: [
+          ['Expansions', 'cos x = 1 − x²/2 + x⁴/24 − ⋯<br>sin x = x − x³/6 + ⋯'],
+          ['Numerator', '1 − cos x = x²/2 − x⁴/24 + ⋯'],
+          ['Denominator', 'x sin x = x(x − x³/6 + ⋯) = x² − x⁴/6 + ⋯'],
+          ['Simplify', '(x²/2)(1 − x²/12 + ⋯) / [x²(1 − x²/6 + ⋯)] = (1/2)(1 − x²/12 + ⋯)/(1 − x²/6 + ⋯)'],
+          ['Limit', 'As x → 0 the expression tends to <span class="highlight">1/2</span>']
+        ]
+      },
+      ln_x3: {
+        expr: 'lim<sub>x→0</sub> (ln(1+x) − x + x²/2) / x³',
+        answer: '1/3',
+        steps: [
+          ['Expansion', 'ln(1+x) = x − x²/2 + x³/3 − x⁴/4 + ⋯  (|x|&lt;1)'],
+          ['Numerator', 'ln(1+x) − x + x²/2 = x³/3 − x⁴/4 + ⋯'],
+          ['Divide', '(…)/x³ = 1/3 − x/4 + ⋯'],
+          ['Limit', 'As x → 0 the expression tends to <span class="highlight">1/3</span>']
+        ]
+      },
+      sin_tan: {
+        expr: 'lim<sub>x→0</sub> (x − sin x) / (x − tan x)',
+        answer: '−1/2',
+        steps: [
+          ['Expansions', 'sin x = x − x³/6 + O(x⁵)<br>tan x = x + x³/3 + O(x⁵)'],
+          ['Numerator', 'x − sin x = x³/6 + O(x⁵)'],
+          ['Denominator', 'x − tan x = −x³/3 + O(x⁵)'],
+          ['Ratio', '(x³/6 + O(x⁵)) / (−x³/3 + O(x⁵)) = (1/6)/(−1/3) + O(x²)'],
+          ['Limit', 'As x → 0 the expression tends to <span class="highlight">−1/2</span>']
+        ]
+      }
+    };
+
+    const EXPANSIONS = {
+      exp: {
+        name: 'eˣ',
+        upto: {
+          1: '1 + x',
+          2: '1 + x + x²/2',
+          3: '1 + x + x²/2 + x³/6',
+          4: '1 + x + x²/2 + x³/6 + x⁴/24',
+          5: '1 + x + x²/2 + x³/6 + x⁴/24 + x⁵/120',
+          6: '1 + x + x²/2 + x³/6 + x⁴/24 + x⁵/120 + x⁶/720'
+        },
+        note: 'Valid for all real x.'
+      },
+      sin: {
+        name: 'sin x',
+        upto: {
+          1: 'x',
+          2: 'x',
+          3: 'x − x³/6',
+          4: 'x − x³/6',
+          5: 'x − x³/6 + x⁵/120',
+          6: 'x − x³/6 + x⁵/120'
+        },
+        note: 'Odd function; only odd powers appear.'
+      },
+      cos: {
+        name: 'cos x',
+        upto: {
+          1: '1',
+          2: '1 − x²/2',
+          3: '1 − x²/2',
+          4: '1 − x²/2 + x⁴/24',
+          5: '1 − x²/2 + x⁴/24',
+          6: '1 − x²/2 + x⁴/24 − x⁶/720'
+        },
+        note: 'Even function; only even powers appear.'
+      },
+      ln: {
+        name: 'ln(1+x)',
+        upto: {
+          1: 'x',
+          2: 'x − x²/2',
+          3: 'x − x²/2 + x³/3',
+          4: 'x − x²/2 + x³/3 − x⁴/4',
+          5: 'x − x²/2 + x³/3 − x⁴/4 + x⁵/5',
+          6: 'x − x²/2 + x³/3 − x⁴/4 + x⁵/5 − x⁶/6'
+        },
+        note: 'Valid for |x| < 1 (and x = 1 with care).'
+      },
+      binom: {
+        name: '(1+x)ⁿ (general n)',
+        upto: {
+          1: '1 + n x',
+          2: '1 + n x + n(n−1)/2 x²',
+          3: '1 + n x + n(n−1)/2 x² + n(n−1)(n−2)/6 x³',
+          4: '1 + n x + n(n−1)/2 x² + n(n−1)(n−2)/6 x³ + n(n−1)(n−2)(n−3)/24 x⁴',
+          5: '… (binomial coefficients continue)',
+          6: '…'
+        },
+        note: 'Valid for |x| < 1 when n is not a positive integer.'
+      },
+      expsin: {
+        name: 'eˣ sin x',
+        upto: {
+          1: 'x',
+          2: 'x + x²',
+          3: 'x + x² + (1/3) x³',
+          4: 'x + x² + (1/3) x³ + O(x⁴)',
+          5: 'x + x² + (1/3) x³ + O(x⁴)',
+          6: 'x + x² + (1/3) x³ + O(x⁴)'
+        },
+        note: 'Obtained by multiplying the series for eˣ and sin x and collecting powers.'
+      },
+      expcos: {
+        name: 'eˣ cos x',
+        upto: {
+          1: '1 + x',
+          2: '1 + x − x³/3 + … (up to x²: 1 + x)',
+          3: '1 + x − (1/3) x³ + …',
+          4: '1 + x − (1/3) x³ + O(x⁴)',
+          5: '1 + x − (1/3) x³ + O(x⁴)',
+          6: '1 + x − (1/3) x³ + O(x⁴)'
+        },
+        note: 'Product of eˣ and cos x series.'
+      }
+    };
+
+    // Correct a couple of product expansions more carefully for display
+    EXPANSIONS.expcos.upto = {
+      1: '1 + x',
+      2: '1 + x',
+      3: '1 + x − x³/3',
+      4: '1 + x − x³/3 + O(x⁴)',
+      5: '1 + x − x³/3 + O(x⁴)',
+      6: '1 + x − x³/3 + O(x⁴)'
+    };
+
+    function clearSteps() { stepsArea.innerHTML = ''; }
+    function addStep(label, html, type = 'active') {
+      const d = document.createElement('div');
+      d.className = 'step ' + type;
+      d.innerHTML = `<div class="label">${label}</div>${html}`;
+      stepsArea.appendChild(d);
+      stepsArea.scrollTop = stepsArea.scrollHeight;
+    }
+
+    function runExpand() {
+      clearSteps();
+      const key = document.getElementById('fn-select').value;
+      const p = Math.min(6, Math.max(1, parseInt(document.getElementById('power').value, 10) || 3));
+      const data = EXPANSIONS[key];
+      addStep('Function', `<strong>${data.name}</strong>`);
+      addStep('Maclaurin polynomial', `Up to the term in x<sup>${p}</sup>:<br><span class="series-term">${data.upto[p] || data.upto[3]}</span>`);
+      addStep('Validity', data.note);
+      addStep('Result', `<span class="highlight">${data.name} = ${data.upto[p] || data.upto[3]} + ⋯</span>`, 'success');
+      status.textContent = `Expand · ${data.name} up to x^${p}`;
+    }
+
+    function runLimit() {
+      clearSteps();
+      const L = LIMITS[currentLimit];
+      addStep('Limit', L.expr);
+      L.steps.forEach(([label, html]) => addStep(label, html));
+      addStep('Final answer', `<span class="highlight">${L.answer}</span>`, 'success');
+      status.textContent = `Limit resolved · answer ${L.answer}`;
+    }
+
+    function setMode(m) {
+      mode = m;
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === m));
+      document.getElementById('panel-expand').style.display = m === 'expand' ? 'block' : 'none';
+      document.getElementById('panel-limit').style.display = m === 'limit' ? 'block' : 'none';
+      clearSteps();
+      if (m === 'expand') {
+        addStep('Maclaurin Expansion', 'Choose a function and the highest power, then press Expand.');
+        status.textContent = 'Expand mode';
+      } else {
+        document.getElementById('limit-expr').innerHTML = LIMITS[currentLimit].expr;
+        addStep('Limits via Series', 'Select a limit example and press Resolve Limit.');
+        status.textContent = 'Limits mode';
+      }
+    }
+
+    // Events
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => setMode(btn.dataset.mode));
+    });
+    document.getElementById('limit-select').addEventListener('change', e => {
+      currentLimit = e.target.value;
+      document.getElementById('limit-expr').innerHTML = LIMITS[currentLimit].expr;
+    });
+    document.getElementById('btn-run').addEventListener('click', () => {
+      if (mode === 'expand') runExpand();
+      else runLimit();
+    });
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      clearSteps();
+      addStep('Ready', mode === 'expand' ? 'Choose function and power.' : 'Select a limit example.');
+    });
+    document.getElementById('btn-answer').addEventListener('click', () => {
+      if (mode === 'expand') {
+        const key = document.getElementById('fn-select').value;
+        const p = parseInt(document.getElementById('power').value, 10) || 3;
+        addStep('Answer', `<span class="highlight">${EXPANSIONS[key].upto[p]}</span>`, 'success');
+      } else {
+        addStep('Answer', `<span class="highlight">${LIMITS[currentLimit].answer}</span>`, 'success');
+      }
+    });
+    document.getElementById('btn-new').addEventListener('click', () => {
+      if (mode === 'expand') {
+        const keys = Object.keys(EXPANSIONS);
+        document.getElementById('fn-select').value = keys[Math.floor(Math.random() * keys.length)];
+        document.getElementById('power').value = [2, 3, 4][Math.floor(Math.random() * 3)];
+        runExpand();
+      } else {
+        const keys = Object.keys(LIMITS);
+        currentLimit = keys[Math.floor(Math.random() * keys.length)];
+        document.getElementById('limit-select').value = currentLimit;
+        document.getElementById('limit-expr').innerHTML = LIMITS[currentLimit].expr;
+        runLimit();
+      }
+    });
+    document.getElementById('btn-hint').addEventListener('click', () => {
+      if (mode === 'expand') {
+        addStep('Hint', 'For products, expand each factor separately then multiply and collect like powers of x. Stop at the required degree.');
+      } else {
+        addStep('Hint', 'Expand numerator and denominator until the lowest power of x that does not cancel is visible, then take the limit of the remaining constant.');
+      }
+    });
+
+    setMode('expand');
+  </script>
+</body>
+</html>

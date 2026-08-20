@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>H2 Math – Plane Equation Studio</title>
+  <style>
+    :root {
+      --bg: #0f1419; --panel: #1a2332; --canvas-bg: #0b1120;
+      --accent: #3b82f6; --accent-hover: #2563eb;
+      --text: #e5e7eb; --muted: #9ca3af; --border: #374151;
+      --success: #22c55e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .top-bar {
+      height: 48px; background: var(--panel); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 16px; gap: 12px; flex-shrink: 0;
+    }
+    .top-bar h1 { font-size: 15px; font-weight: 600; }
+    .badge { background: var(--accent); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 999px; }
+    .spacer { flex: 1; }
+    .btn {
+      background: var(--accent); color: #fff; border: none; padding: 6px 12px;
+      border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 500;
+    }
+    .btn:hover { background: var(--accent-hover); }
+    .btn.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn.secondary:hover { background: #1f2937; }
+
+    .main { flex: 1; display: flex; min-height: 0; }
+    .left-panel {
+      width: 300px; background: var(--panel); border-right: 1px solid var(--border);
+      padding: 14px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex-shrink: 0;
+    }
+    .panel-section h2 {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--muted); margin-bottom: 8px;
+    }
+    select, input[type="number"] {
+      width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      padding: 7px 8px; border-radius: 6px; font-size: 13px;
+    }
+    input[type="number"] { width: 64px; text-align: center; }
+    .coord-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; font-size: 13px; }
+    .coord-row label { width: 28px; color: var(--muted); }
+    .hint-box {
+      font-size: 12px; color: var(--muted); background: #0c1220; border: 1px solid var(--border);
+      border-radius: 6px; padding: 8px 10px; line-height: 1.45;
+    }
+    .core-callout {
+      background: #1e3a5f; border: 1px solid var(--accent); border-radius: 8px;
+      padding: 10px; font-size: 12px; line-height: 1.45; color: #93c5fd;
+    }
+    .core-callout strong { color: #fff; }
+
+    .center-col {
+      flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--canvas-bg);
+    }
+    canvas { flex: 1; width: 100%; display: block; cursor: grab; }
+    canvas.dragging-point { cursor: move; }
+    .legend {
+      padding: 8px 14px; background: var(--panel); border-top: 1px solid var(--border);
+      display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted);
+    }
+    .legend span { display: flex; align-items: center; gap: 6px; }
+    .swatch { width: 12px; height: 12px; border-radius: 3px; }
+
+    .right-panel {
+      width: 340px; background: var(--panel); border-left: 1px solid var(--border);
+      padding: 14px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex-shrink: 0;
+    }
+    .right-panel h2 {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--muted); margin-bottom: 4px;
+    }
+    .step {
+      background: #0c1220; border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 12px; font-size: 13px; line-height: 1.55;
+      border-left: 3px solid var(--border);
+    }
+    .step.active { border-left-color: var(--accent); }
+    .step.success { border-left-color: var(--success); }
+    .step .label {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+      color: var(--muted); margin-bottom: 4px;
+    }
+    .math { font-family: 'Cambria Math', 'Times New Roman', serif; font-size: 14px; }
+    .v1c { color: #86efac; } .v2c { color: #fcd34d; } .nc { color: #fca5a5; }
+    /* Bold vector variables so students distinguish vectors from scalars */
+    .vec { font-weight: 700; }
+
+    .bottom-bar {
+      height: 40px; background: var(--panel); border-top: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 16px; font-size: 12px; color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <h1>Plane Equation Studio</h1>
+    <span class="badge">Drag points freely</span>
+    <div class="spacer"></div>
+    <button class="btn secondary" id="btn-reset">Reset View</button>
+    <button class="btn" id="btn-recompute">Recompute</button>
+  </div>
+
+  <div class="main">
+    <aside class="left-panel">
+      <div class="panel-section">
+        <h2>Given Condition</h2>
+        <select id="case-select">
+          <option value="three-points">Three points</option>
+          <option value="two-lines">Two lines</option>
+          <option value="point-line">Point and line</option>
+          <option value="parallel-yz">Parallel to the y-z plane</option>
+        </select>
+      </div>
+
+      <div class="core-callout">
+        <strong>Core step (same every time)</strong><br>
+        Find two non-parallel vectors on the plane → cross product → normal → equation.<br>
+        <span style="opacity:0.9">Bold symbols (e.g. <span class="vec">v₁</span>, <span class="vec">n</span>) are vectors; x, y, z are scalars.</span>
+      </div>
+
+      <div class="panel-section" id="inputs-section"></div>
+
+      <div class="panel-section">
+        <h2>Interaction</h2>
+        <div class="hint-box">
+          <strong>Drag points</strong> on the canvas to move them freely.<br>
+          Drag empty space to rotate the view.<br>
+          Coordinates in the left panel update live.
+        </div>
+      </div>
+    </aside>
+
+    <div class="center-col">
+      <canvas id="c"></canvas>
+      <div class="legend">
+        <span><i class="swatch" style="background:#22c55e"></i> <strong>v₁</strong> on plane</span>
+        <span><i class="swatch" style="background:#f59e0b"></i> <strong>v₂</strong> on plane</span>
+        <span><i class="swatch" style="background:#ef4444"></i> Normal <strong>n</strong></span>
+        <span><i class="swatch" style="background:rgba(59,130,246,0.5)"></i> Plane</span>
+        <span style="color:#93c5fd">● Draggable points</span>
+      </div>
+    </div>
+
+    <aside class="right-panel">
+      <h2>Step-by-step working</h2>
+      <div id="working"></div>
+    </aside>
+  </div>
+
+  <div class="bottom-bar" id="status">
+    Drag any labelled point on the canvas. Empty drag rotates the view.
+  </div>
+
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    let W, H;
+    let yaw = 0.6, pitch = 0.4;
+    let caseId = 'three-points';
+    const SCALE = 70;
+
+    const data = {
+      threePoints: {
+        A: [1, 0, 0], B: [0, 2, 0], C: [0, 0, 3]
+      },
+      twoLines: {
+        // Line 1: P1 → P1+d1 ; Line 2: P1 → P1+d2  (intersecting at P1)
+        // Also store tip points so students can drag line ends
+        P1: [0, 0, 0],
+        T1: [2, 0, 0],   // tip of d1
+        T2: [0, 2, 1]    // tip of d2
+      },
+      pointLine: {
+        L: [0, 0, 0],
+        T: [2, 0, 0],    // tip of direction d
+        Q: [0, 2, 1]
+      },
+      parallelYZ: {
+        P: [2, 0, 0]
+      }
+    };
+
+    let v1 = [1,0,0], v2 = [0,1,0], n = [0,0,1], pointOnPlane = [0,0,0];
+    let planeEq = { a:0, b:0, c:1, d:0 };
+
+    // Draggable handles: { id, get(), set(x,y,z), color, label }
+    let handles = [];
+    let dragHandle = null;
+    let orbiting = false;
+    let lastX = 0, lastY = 0;
+
+    function sub(a,b){ return [a[0]-b[0],a[1]-b[1],a[2]-b[2]]; }
+    function add(a,b){ return [a[0]+b[0],a[1]+b[1],a[2]+b[2]]; }
+    function scale(a,s){ return [a[0]*s,a[1]*s,a[2]*s]; }
+    function dot(a,b){ return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
+    function cross(a,b){
+      return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+    }
+    function norm(a){
+      const m = Math.hypot(a[0],a[1],a[2])||1;
+      return [a[0]/m,a[1]/m,a[2]/m];
+    }
+    function mag(a){ return Math.hypot(a[0],a[1],a[2]); }
+    function fmt(v,dec=2){
+      if(Array.isArray(v)) return `(${v.map(x=>Number(x).toFixed(dec)).join(', ')})`;
+      return Number(v).toFixed(dec);
+    }
+
+    // Keep d1/d2 derived from tips for two-lines & point-line
+    function syncDerived(){
+      if(caseId === 'two-lines'){
+        data.twoLines.d1 = sub(data.twoLines.T1, data.twoLines.P1);
+        data.twoLines.d2 = sub(data.twoLines.T2, data.twoLines.P1);
+      } else if(caseId === 'point-line'){
+        data.pointLine.d = sub(data.pointLine.T, data.pointLine.L);
+      }
+    }
+
+    function recompute(){
+      syncDerived();
+      if(caseId === 'three-points'){
+        const {A,B,C} = data.threePoints;
+        v1 = sub(B,A); v2 = sub(C,A); pointOnPlane = A.slice();
+        n = cross(v1,v2);
+      } else if(caseId === 'two-lines'){
+        const {P1,d1,d2} = data.twoLines;
+        v1 = d1.slice(); v2 = d2.slice(); pointOnPlane = P1.slice();
+        n = cross(v1,v2);
+      } else if(caseId === 'point-line'){
+        const {L,d,Q} = data.pointLine;
+        v1 = d.slice(); v2 = sub(Q,L); pointOnPlane = L.slice();
+        n = cross(v1,v2);
+      } else {
+        const {P} = data.parallelYZ;
+        v1 = [0,1,0]; v2 = [0,0,1]; pointOnPlane = P.slice();
+        n = cross(v1,v2);
+      }
+      if(mag(n) < 1e-9) n = [0,0,1];
+      planeEq = { a:n[0], b:n[1], c:n[2], d:dot(n,pointOnPlane) };
+      buildHandles();
+      renderWorking();
+      syncInputsFromData();
+      draw();
+      document.getElementById('status').textContent =
+        `Case: ${caseId} · Drag blue points · n = ${fmt(n)}`;
+    }
+
+    function buildHandles(){
+      handles = [];
+      if(caseId === 'three-points'){
+        handles.push(
+          { id:'A', get:()=>data.threePoints.A, set:(p)=>{data.threePoints.A=p;}, label:'A', color:'#93c5fd' },
+          { id:'B', get:()=>data.threePoints.B, set:(p)=>{data.threePoints.B=p;}, label:'B', color:'#86efac' },
+          { id:'C', get:()=>data.threePoints.C, set:(p)=>{data.threePoints.C=p;}, label:'C', color:'#fcd34d' }
+        );
+      } else if(caseId === 'two-lines'){
+        handles.push(
+          { id:'P1', get:()=>data.twoLines.P1, set:(p)=>{
+              // move tips with P1 to keep directions if desired — free move of origin
+              const old = data.twoLines.P1.slice();
+              const delta = sub(p, old);
+              data.twoLines.P1 = p;
+              data.twoLines.T1 = add(data.twoLines.T1, delta);
+              data.twoLines.T2 = add(data.twoLines.T2, delta);
+            }, label:'P', color:'#93c5fd' },
+          { id:'T1', get:()=>data.twoLines.T1, set:(p)=>{data.twoLines.T1=p;}, label:'d₁ tip', color:'#86efac' },
+          { id:'T2', get:()=>data.twoLines.T2, set:(p)=>{data.twoLines.T2=p;}, label:'d₂ tip', color:'#fcd34d' }
+        );
+      } else if(caseId === 'point-line'){
+        handles.push(
+          { id:'L', get:()=>data.pointLine.L, set:(p)=>{
+              const old = data.pointLine.L.slice();
+              const delta = sub(p, old);
+              data.pointLine.L = p;
+              data.pointLine.T = add(data.pointLine.T, delta);
+            }, label:'L', color:'#93c5fd' },
+          { id:'T', get:()=>data.pointLine.T, set:(p)=>{data.pointLine.T=p;}, label:'d tip', color:'#86efac' },
+          { id:'Q', get:()=>data.pointLine.Q, set:(p)=>{data.pointLine.Q=p;}, label:'Q', color:'#fcd34d' }
+        );
+      } else {
+        handles.push(
+          { id:'P', get:()=>data.parallelYZ.P, set:(p)=>{data.parallelYZ.P=p;}, label:'P', color:'#93c5fd' }
+        );
+      }
+    }
+
+    function renderWorking(){
+      const el = document.getElementById('working');
+      let html = '';
+      // Helper: bold vector symbol
+      const V = (s) => `<span class="vec">${s}</span>`;
+
+      html += `<div class="step active"><div class="label">Step 1 · Identify two vectors on the plane</div>`;
+      if(caseId === 'three-points'){
+        const {A,B,C} = data.threePoints;
+        html += `<div class="math">Points A ${fmt(A)}, B ${fmt(B)}, C ${fmt(C)}.<br><br>
+          <span class="v1c">${V('v₁')} = ${V('AB')} = ${fmt(v1)}</span><br>
+          <span class="v2c">${V('v₂')} = ${V('AC')} = ${fmt(v2)}</span></div>`;
+      } else if(caseId === 'two-lines'){
+        html += `<div class="math">Lines meet at P ${fmt(data.twoLines.P1)}.<br><br>
+          <span class="v1c">${V('v₁')} = ${V('d₁')} = ${fmt(v1)}</span><br>
+          <span class="v2c">${V('v₂')} = ${V('d₂')} = ${fmt(v2)}</span><br>
+          Drag P to move both lines; drag tips to change directions.</div>`;
+      } else if(caseId === 'point-line'){
+        html += `<div class="math">Line through L ${fmt(data.pointLine.L)}, tip ${fmt(data.pointLine.T)}.<br>
+          External point Q ${fmt(data.pointLine.Q)}.<br><br>
+          <span class="v1c">${V('v₁')} = ${V('d')} = ${fmt(v1)}</span><br>
+          <span class="v2c">${V('v₂')} = ${V('LQ')} = ${fmt(v2)}</span></div>`;
+      } else {
+        html += `<div class="math">Plane ∥ y-z plane through P ${fmt(data.parallelYZ.P)}.<br><br>
+          <span class="v1c">${V('v₁')} = ${V('j')} = ${fmt(v1)}</span><br>
+          <span class="v2c">${V('v₂')} = ${V('k')} = ${fmt(v2)}</span><br>
+          Drag P; the plane stays parallel to y-z (normal ∥ x-axis).</div>`;
+      }
+      html += `</div>`;
+
+      html += `<div class="step active"><div class="label">Step 2 · Cross product → normal</div>
+        <div class="math"><span class="nc">${V('n')} = ${V('v₁')} × ${V('v₂')} = ${fmt(n)}</span></div></div>`;
+
+      const {a,b,c,d} = planeEq;
+      html += `<div class="step success"><div class="label">Step 3 · Equation of the plane</div>
+        <div class="math">${V('r')} · ${V('n')} = ${V('a')} · ${V('n')}<br>
+        ${V('r')} · ${fmt(n)} = ${fmt(d)}<br><br>
+        <strong>${fmt(a)} x + ${fmt(b)} y + ${fmt(c)} z = ${fmt(d)}</strong><br>
+        <span style="font-size:12px;color:var(--muted)">(x, y, z are scalar components; ${V('r')}, ${V('n')}, ${V('a')} are vectors)</span>
+        </div></div>`;
+
+      html += `<div class="step"><div class="label">Unifying idea</div>
+        Every case only differs in <em>how</em> ${V('v₁')} and ${V('v₂')} are obtained. Drag the points — the algebra path stays the same.
+        <br><span style="font-size:12px;color:var(--muted)">Bold symbols denote vectors; x, y, z and numeric coefficients are scalars.</span></div>`;
+      el.innerHTML = html;
+    }
+
+    function buildInputs(){
+      const sec = document.getElementById('inputs-section');
+      let html = '';
+      function block(title, arr, pathPrefix){
+        let h = `<div style="margin-bottom:6px"><strong style="font-size:12px;color:var(--muted)">${title}</strong></div>`;
+        ['x','y','z'].forEach((ax,i)=>{
+          h += `<div class="coord-row"><label>${ax}</label>
+            <input type="number" step="0.5" data-path="${pathPrefix}.${i}" value="${Number(arr[i]).toFixed(2)}" /></div>`;
+        });
+        return h;
+      }
+      if(caseId === 'three-points'){
+        html += block('Point A', data.threePoints.A, 'threePoints.A');
+        html += block('Point B', data.threePoints.B, 'threePoints.B');
+        html += block('Point C', data.threePoints.C, 'threePoints.C');
+      } else if(caseId === 'two-lines'){
+        html += block('Intersection P', data.twoLines.P1, 'twoLines.P1');
+        html += block('Direction tip 1', data.twoLines.T1, 'twoLines.T1');
+        html += block('Direction tip 2', data.twoLines.T2, 'twoLines.T2');
+      } else if(caseId === 'point-line'){
+        html += block('Point L on line', data.pointLine.L, 'pointLine.L');
+        html += block('Direction tip', data.pointLine.T, 'pointLine.T');
+        html += block('External Q', data.pointLine.Q, 'pointLine.Q');
+      } else {
+        html += block('Point P on plane', data.parallelYZ.P, 'parallelYZ.P');
+        html += `<div class="hint-box" style="margin-top:8px">Parallel to y-z ⇒ equation x = k.</div>`;
+      }
+      sec.innerHTML = html;
+      sec.querySelectorAll('input').forEach(inp=>{
+        inp.addEventListener('change', ()=>{
+          const parts = inp.dataset.path.split('.');
+          let obj = data;
+          for(let i=0;i<parts.length-1;i++) obj = obj[parts[i]];
+          obj[parts[parts.length-1]] = parseFloat(inp.value)||0;
+          recompute();
+        });
+      });
+    }
+
+    function syncInputsFromData(){
+      const sec = document.getElementById('inputs-section');
+      sec.querySelectorAll('input').forEach(inp=>{
+        const parts = inp.dataset.path.split('.');
+        let obj = data;
+        for(let i=0;i<parts.length-1;i++) obj = obj[parts[i]];
+        const val = obj[parts[parts.length-1]];
+        if(document.activeElement !== inp) inp.value = Number(val).toFixed(2);
+      });
+    }
+
+    // ----- Projection -----
+    function project(p){
+      let x=p[0], y=p[1], z=p[2];
+      const cy=Math.cos(yaw), sy=Math.sin(yaw);
+      const cp=Math.cos(pitch), sp=Math.sin(pitch);
+      let x1 = x*cy + z*sy;
+      let z1 = -x*sy + z*cy;
+      let y2 = y*cp - z1*sp;
+      let z2 = y*sp + z1*cp;
+      return [W/2 + x1*SCALE, H/2 - y2*SCALE, z2];
+    }
+
+    // Approximate inverse: map screen delta to world delta in the plane of the screen
+    function screenToWorldDelta(dx, dy){
+      // Basis vectors of camera in world space
+      const cy=Math.cos(yaw), sy=Math.sin(yaw);
+      const cp=Math.cos(pitch), sp=Math.sin(pitch);
+      // camera right (screen +x)
+      const right = [cy, 0, sy];
+      // camera up (screen -y because canvas y grows down)
+      // after pitch: up ≈ [sy*sp, cp, -cy*sp] roughly
+      const up = [sy*sp, cp, -cy*sp];
+      const world = add(scale(right, dx/SCALE), scale(up, -dy/SCALE));
+      return world;
+    }
+
+    function drawArrow(from, to, color, label){
+      const a=project(from), b=project(to);
+      ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=2.5;
+      ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke();
+      const ang=Math.atan2(b[1]-a[1], b[0]-a[0]);
+      const len=10;
+      ctx.beginPath();
+      ctx.moveTo(b[0],b[1]);
+      ctx.lineTo(b[0]-len*Math.cos(ang-0.35), b[1]-len*Math.sin(ang-0.35));
+      ctx.lineTo(b[0]-len*Math.cos(ang+0.35), b[1]-len*Math.sin(ang+0.35));
+      ctx.closePath(); ctx.fill();
+      if(label){
+        // Bold font for vector labels (v₁, v₂, n, etc.)
+        ctx.font = 'bold 12px Segoe UI,sans-serif';
+        ctx.fillText(label, b[0]+8, b[1]-6);
+      }
+    }
+
+    function drawHandle(h){
+      const p = h.get();
+      const q = project(p);
+      ctx.beginPath();
+      ctx.arc(q[0], q[1], 8, 0, Math.PI*2);
+      ctx.fillStyle = h.color;
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.font = '12px Segoe UI,sans-serif';
+      ctx.fillStyle = '#e5e7eb';
+      ctx.fillText(h.label, q[0]+10, q[1]-8);
+    }
+
+    function drawPlane(){
+      const u1 = scale(norm(v1), 2.2);
+      const u2 = scale(norm(v2), 2.2);
+      const o = pointOnPlane;
+      const corners = [
+        add(o, add(scale(u1,-1), scale(u2,-1))),
+        add(o, add(scale(u1, 1), scale(u2,-1))),
+        add(o, add(scale(u1, 1), scale(u2, 1))),
+        add(o, add(scale(u1,-1), scale(u2, 1)))
+      ];
+      const pts = corners.map(project);
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0], pts[0][1]);
+      for(let i=1;i<4;i++) ctx.lineTo(pts[i][0], pts[i][1]);
+      ctx.closePath();
+      ctx.fillStyle='rgba(59,130,246,0.22)';
+      ctx.strokeStyle='rgba(147,197,253,0.7)';
+      ctx.lineWidth=1.5;
+      ctx.fill(); ctx.stroke();
+    }
+
+    function drawAxes(){
+      const O=[0,0,0], L=2.2;
+      drawArrow(O,[L,0,0],'#6b7280','x');
+      drawArrow(O,[0,L,0],'#6b7280','y');
+      drawArrow(O,[0,0,L],'#6b7280','z');
+    }
+
+    function drawLineSegment(a,b,color){
+      const A=project(a), B=project(b);
+      ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.setLineDash([5,4]);
+      ctx.beginPath(); ctx.moveTo(A[0],A[1]); ctx.lineTo(B[0],B[1]); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    function draw(){
+      W = canvas.clientWidth; H = canvas.clientHeight;
+      canvas.width = W * devicePixelRatio;
+      canvas.height = H * devicePixelRatio;
+      ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+      ctx.clearRect(0,0,W,H);
+
+      drawAxes();
+      drawPlane();
+
+      // Case-specific line visuals
+      if(caseId === 'two-lines'){
+        const {P1,T1,T2} = data.twoLines;
+        // extend lines a bit beyond tips
+        const ext1 = add(P1, scale(sub(T1,P1), 1.3));
+        const ext2 = add(P1, scale(sub(T2,P1), 1.3));
+        const back1 = add(P1, scale(sub(T1,P1), -0.4));
+        const back2 = add(P1, scale(sub(T2,P1), -0.4));
+        drawLineSegment(back1, ext1, '#86efac');
+        drawLineSegment(back2, ext2, '#fcd34d');
+      } else if(caseId === 'point-line'){
+        const {L,T} = data.pointLine;
+        const ext = add(L, scale(sub(T,L), 1.3));
+        const back = add(L, scale(sub(T,L), -0.4));
+        drawLineSegment(back, ext, '#86efac');
+      }
+
+      // Plane vectors & normal
+      drawArrow(pointOnPlane, add(pointOnPlane,v1), '#22c55e', 'v₁');
+      drawArrow(pointOnPlane, add(pointOnPlane,v2), '#f59e0b', 'v₂');
+      drawArrow(pointOnPlane, add(pointOnPlane, scale(norm(n),1.8)), '#ef4444', 'n');
+
+      // Draggable handles on top
+      handles.forEach(drawHandle);
+    }
+
+    function hitTest(mx, my){
+      let best = null, bestD = 14;
+      for(const h of handles){
+        const q = project(h.get());
+        const d = Math.hypot(q[0]-mx, q[1]-my);
+        if(d < bestD){ bestD = d; best = h; }
+      }
+      return best;
+    }
+
+    // ----- Pointer events -----
+    // Interaction modes are mutually exclusive:
+    //   'drag'  = move a point (camera yaw/pitch frozen)
+    //   'orbit' = rotate the view only
+    //   null    = idle
+    let interactionMode = null; // null | 'drag' | 'orbit'
+
+    function endInteraction(){
+      interactionMode = null;
+      dragHandle = null;
+      orbiting = false;
+      canvas.classList.remove('dragging-point');
+      canvas.style.cursor = 'grab';
+    }
+
+    canvas.addEventListener('mousedown', e=>{
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+      const h = hitTest(mx, my);
+      lastX = e.clientX;
+      lastY = e.clientY;
+      if(h){
+        // Point drag: do NOT touch yaw/pitch
+        interactionMode = 'drag';
+        dragHandle = h;
+        orbiting = false;
+        canvas.classList.add('dragging-point');
+        canvas.style.cursor = 'move';
+      } else {
+        interactionMode = 'orbit';
+        dragHandle = null;
+        orbiting = true;
+        canvas.style.cursor = 'grabbing';
+      }
+    });
+
+    window.addEventListener('mousemove', e=>{
+      if(interactionMode === 'drag' && dragHandle){
+        // Move geometry only — camera stays fixed
+        const worldDelta = screenToWorldDelta(e.movementX, e.movementY);
+        const cur = dragHandle.get().slice();
+        dragHandle.set(add(cur, worldDelta));
+        // recompute updates vectors/plane/working text but must not alter yaw/pitch
+        const savedYaw = yaw, savedPitch = pitch;
+        recompute();
+        yaw = savedYaw;
+        pitch = savedPitch;
+        draw();
+        lastX = e.clientX;
+        lastY = e.clientY;
+      } else if(interactionMode === 'orbit' && orbiting){
+        const dx = e.clientX - lastX, dy = e.clientY - lastY;
+        yaw += dx * 0.01;
+        pitch = Math.max(-1.4, Math.min(1.4, pitch + dy * 0.01));
+        lastX = e.clientX;
+        lastY = e.clientY;
+        draw(); // draw only — do not recompute geometry
+      } else if(interactionMode === null){
+        const rect = canvas.getBoundingClientRect();
+        const h = hitTest(e.clientX - rect.left, e.clientY - rect.top);
+        canvas.style.cursor = h ? 'move' : 'grab';
+      }
+    });
+
+    window.addEventListener('mouseup', endInteraction);
+    window.addEventListener('mouseleave', endInteraction);
+
+    // Touch support
+    canvas.addEventListener('touchstart', e=>{
+      if(e.touches.length !== 1) return;
+      const t = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const h = hitTest(t.clientX - rect.left, t.clientY - rect.top);
+      lastX = t.clientX;
+      lastY = t.clientY;
+      if(h){
+        interactionMode = 'drag';
+        dragHandle = h;
+        orbiting = false;
+        e.preventDefault();
+      } else {
+        interactionMode = 'orbit';
+        dragHandle = null;
+        orbiting = true;
+      }
+    }, {passive:false});
+
+    canvas.addEventListener('touchmove', e=>{
+      if(e.touches.length !== 1) return;
+      const t = e.touches[0];
+      const dx = t.clientX - lastX, dy = t.clientY - lastY;
+      if(interactionMode === 'drag' && dragHandle){
+        const savedYaw = yaw, savedPitch = pitch;
+        dragHandle.set(add(dragHandle.get(), screenToWorldDelta(dx, dy)));
+        recompute();
+        yaw = savedYaw;
+        pitch = savedPitch;
+        draw();
+        lastX = t.clientX;
+        lastY = t.clientY;
+        e.preventDefault();
+      } else if(interactionMode === 'orbit' && orbiting){
+        yaw += dx * 0.01;
+        pitch = Math.max(-1.4, Math.min(1.4, pitch + dy * 0.01));
+        lastX = t.clientX;
+        lastY = t.clientY;
+        draw();
+        e.preventDefault();
+      }
+    }, {passive:false});
+
+    canvas.addEventListener('touchend', endInteraction);
+    canvas.addEventListener('touchcancel', endInteraction);
+
+    document.getElementById('case-select').addEventListener('change', e=>{
+      caseId = e.target.value;
+      buildInputs();
+      recompute();
+    });
+    document.getElementById('btn-recompute').addEventListener('click', recompute);
+    document.getElementById('btn-reset').addEventListener('click', ()=>{
+      yaw=0.6; pitch=0.4; draw();
+    });
+    window.addEventListener('resize', draw);
+
+    buildInputs();
+    recompute();
+  </script>
+</body>
+</html>

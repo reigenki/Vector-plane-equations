@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>H2 Math – Integration Lab (Parts + Trig Powers)</title>
+  <style>
+    :root {
+      --bg:#0f1419; --panel:#1a2332; --canvas-bg:#0b1120;
+      --accent:#3b82f6; --accent-hover:#2563eb;
+      --u-color:#ef4444; --dv-color:#22c55e; --result:#38bdf8;
+      --text:#e5e7eb; --muted:#9ca3af; --border:#374151;
+      --success:#22c55e; --warning:#f59e0b;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+    .top-bar{height:48px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0}
+    .top-bar h1{font-size:15px;font-weight:600}
+    .badge{background:var(--accent);color:#fff;font-size:11px;padding:2px 8px;border-radius:999px}
+    .spacer{flex:1}
+    .btn{background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:500}
+    .btn:hover{background:var(--accent-hover)}
+    .btn.secondary{background:transparent;border:1px solid var(--border);color:var(--text)}
+    .btn.secondary:hover{background:#1f2937}
+    .btn.small{padding:5px 10px;font-size:12px}
+    .main{flex:1;display:flex;min-height:0}
+    .left-panel{width:320px;background:var(--panel);border-right:1px solid var(--border);padding:14px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;flex-shrink:0}
+    .panel-section h2{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px}
+    .app-toggle{display:flex;flex-wrap:wrap;gap:6px}
+    .app-btn{flex:1 1 40%;padding:8px 6px;background:var(--bg);border:1px solid var(--border);color:var(--muted);border-radius:6px;font-size:12px;cursor:pointer;text-align:center}
+    .app-btn.active{background:#1e3a5f;color:#93c5fd;border-color:var(--accent)}
+    .app-btn:hover{background:#1f2937;color:var(--text)}
+    .integral-display{background:#0c1220;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:'Cambria Math','Times New Roman',serif;font-size:18px;text-align:center;min-height:48px;display:flex;align-items:center;justify-content:center}
+    .hint-box{font-size:12px;color:var(--muted);background:#0c1220;border:1px solid var(--border);border-radius:6px;padding:8px 10px;line-height:1.45;margin-top:8px}
+    input[type=number]{width:70px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 6px;border-radius:6px;font-size:13px;text-align:center}
+    select{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:13px;width:100%}
+    .workspace{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--canvas-bg)}
+    .steps-area{flex:1;padding:18px 22px;overflow-y:auto;font-family:'Cambria Math','Times New Roman',serif;font-size:16px;line-height:1.65}
+    .step{margin-bottom:12px;padding:10px 14px;background:rgba(26,35,50,.75);border-radius:8px;border-left:3px solid var(--border)}
+    .step.active{border-left-color:var(--accent)}
+    .step.success{border-left-color:var(--success)}
+    .step .label{font-family:'Segoe UI',system-ui,sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:4px}
+    .highlight-result{color:#7dd3fc}
+    .reduction-chain{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+    .reduction-pill{background:#1e3a5f;color:#93c5fd;padding:6px 12px;border-radius:999px;font-size:14px;font-family:'Segoe UI',system-ui,sans-serif}
+    .reduction-arrow{color:var(--muted);font-size:16px}
+    .formula-box{background:#0c1220;border:1px solid var(--border);border-radius:8px;padding:12px;margin:8px 0;font-size:14px;line-height:1.5}
+    .controls-bar{padding:12px 20px;background:var(--panel);border-top:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .bottom-bar{height:48px;background:var(--panel);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:16px;flex-shrink:0;font-size:13px}
+    .bottom-bar .status{flex:1;color:var(--muted)}
+    .mode-panel{display:none}
+    .mode-panel.active{display:block}
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <h1>Integration Lab</h1>
+    <span class="badge">Parts + Trig Powers</span>
+    <div class="spacer"></div>
+    <button class="btn secondary" id="btn-new">New / Reset</button>
+    <button class="btn" id="btn-hint">Hint</button>
+  </div>
+
+  <div class="main">
+    <aside class="left-panel">
+      <div class="panel-section">
+        <h2>Mode</h2>
+        <div class="app-toggle">
+          <button class="app-btn" data-app="parts">Parts / Tabular</button>
+          <button class="app-btn active" data-app="trig">Trig Powers Reduction</button>
+        </div>
+      </div>
+
+      <div class="mode-panel" id="panel-parts">
+        <div class="panel-section">
+          <h2>Tabular Examples</h2>
+          <div class="hint-box">Polynomial × exp / trig. Use “Derive” to cycle examples and see the result.</div>
+        </div>
+        <div class="panel-section">
+          <h2>Current</h2>
+          <div class="integral-display" id="parts-display">∫ x² e³ˣ dx</div>
+        </div>
+      </div>
+
+      <div class="mode-panel active" id="panel-trig">
+        <div class="panel-section">
+          <h2>Function</h2>
+          <select id="trig-fn">
+            <option value="sin">sinⁿ x</option>
+            <option value="cos">cosⁿ x</option>
+          </select>
+        </div>
+        <div class="panel-section">
+          <h2>Power n</h2>
+          <input type="number" id="trig-n" value="5" min="1" max="12" step="1" />
+          <div class="hint-box" style="margin-top:8px">Common exam values: 3, 4, 5, 6</div>
+        </div>
+        <div class="panel-section">
+          <h2>Type</h2>
+          <div class="app-toggle">
+            <button class="app-btn active" id="btn-indef">Indefinite</button>
+            <button class="app-btn" id="btn-def">Definite 0 → π/2</button>
+          </div>
+        </div>
+        <div class="panel-section">
+          <h2>Current Integral</h2>
+          <div class="integral-display" id="trig-display">∫ sin⁵ x dx</div>
+        </div>
+        <div class="panel-section">
+          <h2>Reduction Formula</h2>
+          <div class="formula-box" id="trig-formula">
+            Iₙ = −(sinⁿ⁻¹ x cos x)/n + ((n−1)/n) Iₙ₋₂
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <div class="steps-area" id="steps-area">
+        <div class="step active">
+          <div class="label">Trig Powers Reduction</div>
+          Choose sin or cos, set power n, select Indefinite or Definite (0 to π/2), then press Derive / Evaluate.
+        </div>
+      </div>
+      <div class="controls-bar">
+        <button class="btn" id="btn-run">Derive / Evaluate</button>
+        <button class="btn secondary" id="btn-show-chain">Show Reduction Chain</button>
+        <button class="btn secondary" id="btn-reset-steps">Reset Steps</button>
+        <button class="btn secondary small" id="btn-show-answer">Show Final Answer</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <div class="status" id="status">Trig Powers mode · Set n and press Derive / Evaluate</div>
+  </div>
+
+  <script>
+    let mainMode = 'trig';
+    let isDefinite = false;
+    let trigFn = 'sin';
+    let trigN = 5;
+    let partsIdx = 0;
+
+    const stepsArea = document.getElementById('steps-area');
+    const status = document.getElementById('status');
+
+    const TABULAR = [
+      { display: '∫ x² e³ˣ dx', answer: 'e³ˣ (⅓ x² − ²⁄₉ x + ²⁄₂₇) + C' },
+      { display: '∫ x³ sin x dx', answer: '−x³ cos x + 3x² sin x + 6x cos x − 6 sin x + C' },
+      { display: '∫ x e²ˣ dx', answer: '½ e²ˣ (x − ½) + C' },
+      { display: '∫ x² cos x dx', answer: 'x² sin x + 2x cos x − 2 sin x + C' }
+    ];
+
+    function clearSteps() { stepsArea.innerHTML = ''; }
+    function addStep(label, html, type = 'active') {
+      const d = document.createElement('div');
+      d.className = 'step ' + type;
+      d.innerHTML = `<div class="label">${label}</div>${html}`;
+      stepsArea.appendChild(d);
+      stepsArea.scrollTop = stepsArea.scrollHeight;
+    }
+
+    function gcd(a, b) { return b ? gcd(b, a % b) : a; }
+
+    function exactDefinite(n) {
+      if (n === 0) return 'π/2';
+      if (n === 1) return '1';
+      let num = 1, den = 1;
+      let k = n;
+      while (k >= 2) {
+        num *= (k - 1);
+        den *= k;
+        k -= 2;
+      }
+      const g = gcd(num, den);
+      num /= g; den /= g;
+      if (k === 0) {
+        // multiply by π/2
+        const den2 = 2 * den;
+        const g2 = gcd(num, den2);
+        return (num / g2) + 'π/' + (den2 / g2);
+      }
+      return den === 1 ? String(num) : num + '/' + den;
+    }
+
+    function updateTrigDisplay() {
+      const fn = document.getElementById('trig-fn').value;
+      const n = parseInt(document.getElementById('trig-n').value, 10) || 5;
+      trigFn = fn;
+      trigN = n;
+      const symbol = fn === 'sin' ? 'sin' : 'cos';
+      if (isDefinite) {
+        document.getElementById('trig-display').textContent = `∫₀^{π/2} ${symbol}ⁿ x dx  (n = ${n})`;
+        document.getElementById('trig-formula').innerHTML = fn === 'sin'
+          ? 'Iₙ = ((n−1)/n) Iₙ₋₂ &nbsp;(boundary term vanishes on [0, π/2])'
+          : 'Jₙ = ((n−1)/n) Jₙ₋₂ &nbsp;(boundary term vanishes on [0, π/2])';
+      } else {
+        document.getElementById('trig-display').textContent = `∫ ${symbol}ⁿ x dx  (n = ${n})`;
+        document.getElementById('trig-formula').innerHTML = fn === 'sin'
+          ? 'Iₙ = −(sin<sup>n−1</sup> x cos x)/n + ((n−1)/n) Iₙ₋₂'
+          : 'Jₙ = (cos<sup>n−1</sup> x sin x)/n + ((n−1)/n) Jₙ₋₂';
+      }
+    }
+
+    function runTrig() {
+      clearSteps();
+      const n = trigN;
+      const fn = trigFn;
+      const symbol = fn === 'sin' ? 'sin' : 'cos';
+      const I = fn === 'sin' ? 'I' : 'J';
+
+      if (isDefinite) {
+        addStep('Goal', `Evaluate <strong>∫₀^{π/2} ${symbol}<sup>${n}</sup> x dx</strong>`);
+        addStep('Key fact', `On [0, π/2] the boundary term vanishes, so<br>${I}<sub>n</sub> = <span class="highlight-result">((n−1)/n)</span> ${I}<sub>n−2</sub>`);
+
+        let k = n;
+        let step = 1;
+        while (k >= 2) {
+          addStep(`Reduction step ${step}`, `${I}<sub>${k}</sub> = <span class="highlight-result">${k-1}/${k}</span> ${I}<sub>${k-2}</sub>`);
+          k -= 2;
+          step++;
+        }
+        if (n % 2 === 1) {
+          addStep('Base case', `${I}<sub>1</sub> = ∫₀^{π/2} ${symbol} x dx = 1`);
+        } else {
+          addStep('Base case', `${I}<sub>0</sub> = ∫₀^{π/2} 1 dx = π/2`);
+        }
+
+        // Visual coefficient chain
+        let pills = '';
+        k = n;
+        while (k >= 2) {
+          pills += `<span class="reduction-pill">${k-1}/${k}</span><span class="reduction-arrow">→</span>`;
+          k -= 2;
+        }
+        pills += `<span class="reduction-pill">${n % 2 === 1 ? 'I₁ = 1' : 'I₀ = π/2'}</span>`;
+        addStep('Coefficient chain', `<div class="reduction-chain">${pills}</div>`);
+
+        const ans = exactDefinite(n);
+        addStep('Final answer', `<span class="highlight-result">∫₀^{π/2} ${symbol}<sup>${n}</sup> x dx = ${ans}</span>`, 'success');
+        status.textContent = `Definite · ${symbol}^${n} → ${ans}`;
+      } else {
+        addStep('Goal', `Derive the reduction formula for <strong>∫ ${symbol}<sup>${n}</sup> x dx</strong> and apply it.`);
+
+        if (fn === 'sin') {
+          addStep('Integration by parts setup',
+            `Write sin<sup>n</sup>x = sin<sup>n−1</sup>x · sin x<br>
+             u = sin<sup>n−1</sup>x , dv = sin x dx<br>
+             du = (n−1) sin<sup>n−2</sup>x cos x dx , v = −cos x`);
+          addStep('Apply parts',
+            `Iₙ = −sin<sup>n−1</sup>x cos x + (n−1) ∫ sin<sup>n−2</sup>x cos² x dx<br>
+             = −sin<sup>n−1</sup>x cos x + (n−1) ∫ sin<sup>n−2</sup>x (1 − sin² x) dx<br>
+             = −sin<sup>n−1</sup>x cos x + (n−1) Iₙ₋₂ − (n−1) Iₙ`);
+          addStep('Collect terms',
+            `Iₙ + (n−1)Iₙ = −sin<sup>n−1</sup>x cos x + (n−1)Iₙ₋₂<br>
+             n Iₙ = −sin<sup>n−1</sup>x cos x + (n−1)Iₙ₋₂<br>
+             <span class="highlight-result">Iₙ = −(sin<sup>n−1</sup>x cos x)/n + ((n−1)/n) Iₙ₋₂</span>`, 'success');
+        } else {
+          addStep('Integration by parts setup',
+            `Write cos<sup>n</sup>x = cos<sup>n−1</sup>x · cos x<br>
+             u = cos<sup>n−1</sup>x , dv = cos x dx<br>
+             Similar algebra produces the cosine formula.`);
+          addStep('Result',
+            `<span class="highlight-result">Jₙ = (cos<sup>n−1</sup>x sin x)/n + ((n−1)/n) Jₙ₋₂</span>`, 'success');
+        }
+
+        if (n >= 2) {
+          addStep(`Apply for n = ${n}`,
+            `${I}<sub>${n}</sub> = ${fn === 'sin' ? `−(sin<sup>${n-1}</sup>x cos x)/${n}` : `(cos<sup>${n-1}</sup>x sin x)/${n}`} + <span class="highlight-result">${n-1}/${n}</span> ${I}<sub>${n-2}</sub>`);
+        }
+        if (n >= 4) {
+          addStep(`Reduce further (n = ${n-2})`,
+            `${I}<sub>${n-2}</sub> = ${fn === 'sin' ? `−(sin<sup>${n-3}</sup>x cos x)/${n-2}` : `(cos<sup>${n-3}</sup>x sin x)/${n-2}`} + <span class="highlight-result">${n-3}/${n-2}</span> ${I}<sub>${n-4}</sub>`);
+        }
+        addStep('Note', 'Continue until the base case I₁ = −cos x or I₀ = x (or cosine analogues). Collect every boundary term for the full indefinite integral.');
+        status.textContent = `Indefinite reduction · ${symbol}^${n}`;
+      }
+    }
+
+    function showReductionChain() {
+      const n = trigN;
+      const I = trigFn === 'sin' ? 'I' : 'J';
+      let html = '<div class="reduction-chain">';
+      let k = n;
+      while (k >= 2) {
+        html += `<span class="reduction-pill">${I}${k}</span><span class="reduction-arrow"> → (${k-1}/${k}) → </span>`;
+        k -= 2;
+      }
+      html += `<span class="reduction-pill">${I}${k} (base)</span></div>`;
+      addStep('Reduction chain', html + '<br>Each arrow multiplies by (power−1)/power and drops the index by 2.');
+    }
+
+    function runParts() {
+      clearSteps();
+      const ex = TABULAR[partsIdx % TABULAR.length];
+      document.getElementById('parts-display').textContent = ex.display;
+      addStep('Tabular method', 'Differentiate the polynomial until zero; integrate the other factor the same number of times; combine diagonal products with alternating signs starting with +.');
+      addStep('Result', `<span class="highlight-result">${ex.answer}</span>`, 'success');
+      status.textContent = 'Parts / Tabular example';
+    }
+
+    function setMainMode(mode) {
+      mainMode = mode;
+      document.querySelectorAll('.app-btn[data-app]').forEach(b => {
+        b.classList.toggle('active', b.dataset.app === mode);
+      });
+      document.getElementById('panel-parts').classList.toggle('active', mode === 'parts');
+      document.getElementById('panel-trig').classList.toggle('active', mode === 'trig');
+      clearSteps();
+      if (mode === 'trig') {
+        updateTrigDisplay();
+        addStep('Trig Powers Reduction', 'Set function, power and type, then press Derive / Evaluate.');
+        status.textContent = 'Trig Powers mode';
+      } else {
+        runParts();
+      }
+    }
+
+    // Events
+    document.querySelectorAll('.app-btn[data-app]').forEach(btn => {
+      btn.addEventListener('click', () => setMainMode(btn.dataset.app));
+    });
+    document.getElementById('trig-fn').addEventListener('change', updateTrigDisplay);
+    document.getElementById('trig-n').addEventListener('change', updateTrigDisplay);
+    document.getElementById('btn-indef').addEventListener('click', () => {
+      isDefinite = false;
+      document.getElementById('btn-indef').classList.add('active');
+      document.getElementById('btn-def').classList.remove('active');
+      updateTrigDisplay();
+    });
+    document.getElementById('btn-def').addEventListener('click', () => {
+      isDefinite = true;
+      document.getElementById('btn-def').classList.add('active');
+      document.getElementById('btn-indef').classList.remove('active');
+      updateTrigDisplay();
+    });
+    document.getElementById('btn-run').addEventListener('click', () => {
+      if (mainMode === 'trig') runTrig();
+      else { partsIdx++; runParts(); }
+    });
+    document.getElementById('btn-show-chain').addEventListener('click', () => {
+      if (mainMode === 'trig') showReductionChain();
+    });
+    document.getElementById('btn-reset-steps').addEventListener('click', () => {
+      clearSteps();
+      addStep('Ready', mainMode === 'trig' ? 'Set parameters and press Derive / Evaluate.' : 'Press Derive to cycle tabular examples.');
+    });
+    document.getElementById('btn-show-answer').addEventListener('click', () => {
+      if (mainMode === 'trig' && isDefinite) {
+        addStep('Answer', `<span class="highlight-result">${exactDefinite(trigN)}</span>`, 'success');
+      } else if (mainMode === 'trig') {
+        addStep('Answer', 'Apply the reduction formula until the base case and collect all boundary terms.');
+      } else {
+        addStep('Answer', `<span class="highlight-result">${TABULAR[partsIdx % TABULAR.length].answer}</span>`, 'success');
+      }
+    });
+    document.getElementById('btn-new').addEventListener('click', () => {
+      if (mainMode === 'trig') {
+        const vals = [3, 4, 5, 6, 7, 8];
+        document.getElementById('trig-n').value = vals[Math.floor(Math.random() * vals.length)];
+        updateTrigDisplay();
+        clearSteps();
+        addStep('New', `Ready for n = ${document.getElementById('trig-n').value}. Press Derive / Evaluate.`);
+      } else {
+        partsIdx++;
+        runParts();
+      }
+    });
+    document.getElementById('btn-hint').addEventListener('click', () => {
+      if (mainMode === 'trig') {
+        addStep('Hint', isDefinite
+          ? 'Boundary term vanishes. Keep multiplying by (n−1)/n and drop the power by 2 until you reach I₀ = π/2 or I₁ = 1.'
+          : 'Write the power as (power−1)×one factor, integrate by parts, replace cos²/sin² by 1−sin²/cos², then collect Iₙ terms.');
+      } else {
+        addStep('Hint', 'Choose the polynomial as the differentiation column so that it eventually becomes zero.');
+      }
+    });
+
+    updateTrigDisplay();
+    setMainMode('trig');
+  </script>
+</body>
+</html>

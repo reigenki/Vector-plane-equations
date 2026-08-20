@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vector Ratio Theorem – Interactive Simulation</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --canvas-bg: #111827;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --point-a: #ef4444;
+      --point-b: #22c55e;
+      --point-p: #a855f7;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --border: #374151;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Top Bar */
+    .top-bar {
+      height: 48px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+    .top-bar h1 {
+      font-size: 15px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .top-bar .badge {
+      background: var(--accent);
+      color: white;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 500;
+    }
+    .spacer { flex: 1; }
+    .btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .btn:hover { background: var(--accent-hover); }
+    .btn.secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn.secondary:hover { background: #1f2937; }
+
+    /* Main Layout */
+    .main {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+    }
+
+    /* Left Panel */
+    .left-panel {
+      width: 300px;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    .panel-section h2 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .ratio-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ratio-controls input[type="number"] {
+      width: 64px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 14px;
+      text-align: center;
+    }
+    .ratio-controls span {
+      font-size: 18px;
+      color: var(--muted);
+    }
+    input[type="range"] {
+      width: 100%;
+      margin-top: 8px;
+      accent-color: var(--accent);
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+    }
+    .toggle-row label { color: var(--muted); }
+
+    .point-info {
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .point-info .label {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+    .point-info .coords {
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 13px;
+    }
+    .color-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    .formula-box {
+      background: #0c1220;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .formula-box .title {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    /* Canvas Area */
+    .canvas-wrap {
+      flex: 1;
+      position: relative;
+      background: var(--canvas-bg);
+      min-width: 0;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+    }
+    canvas.dragging { cursor: grabbing; }
+
+    /* Bottom Bar */
+    .bottom-bar {
+      height: 72px;
+      background: var(--panel);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 24px;
+      flex-shrink: 0;
+      font-size: 14px;
+    }
+    .bottom-bar .live-formula {
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 15px;
+      flex: 1;
+    }
+    .bottom-bar .hint {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    /* Tooltip */
+    .tooltip {
+      position: absolute;
+      background: #1f2937;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      z-index: 10;
+      white-space: nowrap;
+    }
+    .tooltip.visible { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <h1>Vector Ratio Theorem</h1>
+    <span class="badge">H2 Math · 3.1</span>
+    <div class="spacer"></div>
+    <button class="btn secondary" id="btn-reset">Reset</button>
+    <button class="btn" id="btn-challenge">Challenge Me</button>
+  </div>
+
+  <div class="main">
+    <!-- Left Control Panel -->
+    <aside class="left-panel">
+      <div class="panel-section">
+        <h2>Ratio λ : μ</h2>
+        <div class="ratio-controls">
+          <input type="number" id="lambda" value="1" min="0.1" step="0.1" />
+          <span>:</span>
+          <input type="number" id="mu" value="1" min="0.1" step="0.1" />
+        </div>
+        <input type="range" id="ratio-slider" min="0" max="100" value="50" />
+        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-top:4px;">
+          <span>Closer to A</span>
+          <span>Closer to B</span>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h2>Division Type</h2>
+        <div class="toggle-row">
+          <label>Internal division</label>
+          <input type="checkbox" id="internal" checked />
+        </div>
+        <p style="font-size:11px; color:var(--muted); margin-top:6px;">
+          Uncheck for external division (P outside the segment).
+        </p>
+      </div>
+
+      <div class="panel-section">
+        <h2>Display</h2>
+        <div class="toggle-row">
+          <label>Show grid</label>
+          <input type="checkbox" id="show-grid" checked />
+        </div>
+        <div class="toggle-row" style="margin-top:8px;">
+          <label>Show position vectors</label>
+          <input type="checkbox" id="show-pos-vecs" checked />
+        </div>
+        <div class="toggle-row" style="margin-top:8px;">
+          <label>Snap to grid</label>
+          <input type="checkbox" id="snap" />
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h2>Points</h2>
+        <div class="point-info" id="info-a">
+          <div class="label"><span class="color-dot" style="background:var(--point-a)"></span>Point A</div>
+          <div class="coords" id="coords-a">(0, 0)</div>
+        </div>
+        <div class="point-info" style="margin-top:8px;" id="info-b">
+          <div class="label"><span class="color-dot" style="background:var(--point-b)"></span>Point B</div>
+          <div class="coords" id="coords-b">(0, 0)</div>
+        </div>
+        <div class="point-info" style="margin-top:8px;" id="info-p">
+          <div class="label"><span class="color-dot" style="background:var(--point-p)"></span>Point P (divides AB)</div>
+          <div class="coords" id="coords-p">(0, 0)</div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h2>Formula</h2>
+        <div class="formula-box">
+          <div class="title">Position vector of P</div>
+          <div id="formula-display">
+            p = (μ·a + λ·b) / (λ + μ)
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Canvas -->
+    <div class="canvas-wrap">
+      <canvas id="canvas"></canvas>
+      <div class="tooltip" id="tooltip"></div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <div class="live-formula" id="live-formula">
+      p = (1·a + 1·b) / (1+1) = ...
+    </div>
+    <div class="hint">Drag A, B or P · Adjust ratio with slider or inputs</div>
+  </div>
+
+  <script>
+    // ========== State ==========
+    const state = {
+      A: { x: -4, y: 1 },
+      B: { x: 5, y: 2 },
+      lambda: 1,
+      mu: 1,
+      internal: true,
+      showGrid: true,
+      showPosVecs: true,
+      snap: false,
+      dragging: null, // 'A' | 'B' | 'P' | null
+      scale: 40,      // pixels per unit
+      originX: 0,     // canvas centre offset
+      originY: 0,
+      challengeMode: false
+    };
+
+    // Computed P from ratio theorem
+    function computeP() {
+      const { A, B, lambda, mu, internal } = state;
+      if (internal) {
+        // Internal: p = (μ a + λ b) / (λ + μ)
+        const denom = lambda + mu;
+        return {
+          x: (mu * A.x + lambda * B.x) / denom,
+          y: (mu * A.y + lambda * B.y) / denom
+        };
+      } else {
+        // External: p = (μ a - λ b) / (μ - λ)   (when μ ≠ λ)
+        // Standard external division in ratio λ:μ :
+        // p = (μ a - λ b) / (μ - λ)
+        const denom = mu - lambda;
+        if (Math.abs(denom) < 1e-9) {
+          // parallel / undefined – keep previous or midpoint fallback
+          return { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
+        }
+        return {
+          x: (mu * A.x - lambda * B.x) / denom,
+          y: (mu * A.y - lambda * B.y) / denom
+        };
+      }
+    }
+
+    // ========== Canvas Setup ==========
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const tooltip = document.getElementById('tooltip');
+
+    function resize() {
+      const wrap = canvas.parentElement;
+      canvas.width = wrap.clientWidth * devicePixelRatio;
+      canvas.height = wrap.clientHeight * devicePixelRatio;
+      canvas.style.width = wrap.clientWidth + 'px';
+      canvas.style.height = wrap.clientHeight + 'px';
+      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+      state.originX = wrap.clientWidth / 2;
+      state.originY = wrap.clientHeight / 2;
+      draw();
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Convert world → screen
+    function toScreen(p) {
+      return {
+        x: state.originX + p.x * state.scale,
+        y: state.originY - p.y * state.scale
+      };
+    }
+    // Convert screen → world
+    function toWorld(sx, sy) {
+      return {
+        x: (sx - state.originX) / state.scale,
+        y: (state.originY - sy) / state.scale
+      };
+    }
+
+    // ========== Drawing ==========
+    function drawGrid() {
+      if (!state.showGrid) return;
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      ctx.strokeStyle = '#1f2937';
+      ctx.lineWidth = 1;
+
+      const step = state.scale;
+      const startX = state.originX % step;
+      const startY = state.originY % step;
+
+      for (let x = startX; x < w; x += step) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+      for (let y = startY; y < h; y += step) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      // Axes
+      ctx.strokeStyle = '#374151';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, state.originY);
+      ctx.lineTo(w, state.originY);
+      ctx.moveTo(state.originX, 0);
+      ctx.lineTo(state.originX, h);
+      ctx.stroke();
+    }
+
+    function drawPoint(p, color, label) {
+      const s = toScreen(p);
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, 9, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 13px system-ui';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, s.x, s.y);
+    }
+
+    function drawVector(from, to, color, dashed = false) {
+      const s1 = toScreen(from);
+      const s2 = toScreen(to);
+      ctx.beginPath();
+      ctx.moveTo(s1.x, s1.y);
+      ctx.lineTo(s2.x, s2.y);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      if (dashed) ctx.setLineDash([6, 4]);
+      else ctx.setLineDash([]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Arrow head
+      const angle = Math.atan2(s2.y - s1.y, s2.x - s1.x);
+      const headLen = 12;
+      ctx.beginPath();
+      ctx.moveTo(s2.x, s2.y);
+      ctx.lineTo(s2.x - headLen * Math.cos(angle - 0.35), s2.y - headLen * Math.sin(angle - 0.35));
+      ctx.lineTo(s2.x - headLen * Math.cos(angle + 0.35), s2.y - headLen * Math.sin(angle + 0.35));
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
+
+    function drawSegment(from, to, color, width = 2) {
+      const s1 = toScreen(from);
+      const s2 = toScreen(to);
+      ctx.beginPath();
+      ctx.moveTo(s1.x, s1.y);
+      ctx.lineTo(s2.x, s2.y);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.setLineDash([]);
+      ctx.stroke();
+    }
+
+    function draw() {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      ctx.clearRect(0, 0, w, h);
+
+      drawGrid();
+
+      const P = computeP();
+
+      // Line segment AB (or extension for external)
+      drawSegment(state.A, state.B, '#4b5563', 2);
+
+      // If external, draw extension faintly
+      if (!state.internal) {
+        const dx = state.B.x - state.A.x;
+        const dy = state.B.y - state.A.y;
+        const ext1 = { x: state.A.x - dx * 1.5, y: state.A.y - dy * 1.5 };
+        const ext2 = { x: state.B.x + dx * 1.5, y: state.B.y + dy * 1.5 };
+        ctx.setLineDash([4, 4]);
+        drawSegment(ext1, state.A, '#374151', 1);
+        drawSegment(state.B, ext2, '#374151', 1);
+        ctx.setLineDash([]);
+      }
+
+      // Position vectors from origin (optional)
+      if (state.showPosVecs) {
+        const O = { x: 0, y: 0 };
+        drawVector(O, state.A, 'rgba(239,68,68,0.5)', true);
+        drawVector(O, state.B, 'rgba(34,197,94,0.5)', true);
+        drawVector(O, P, 'rgba(168,85,247,0.7)', false);
+      }
+
+      // Segment markers for ratio visualisation
+      drawSegment(state.A, P, 'rgba(168,85,247,0.6)', 3);
+      drawSegment(P, state.B, 'rgba(168,85,247,0.3)', 3);
+
+      // Points
+      drawPoint(state.A, '#ef4444', 'A');
+      drawPoint(state.B, '#22c55e', 'B');
+      drawPoint(P, '#a855f7', 'P');
+
+      // Update UI numbers
+      updateUI(P);
+    }
+
+    function updateUI(P) {
+      const fmt = (v) => (Math.round(v * 100) / 100).toFixed(2);
+      document.getElementById('coords-a').textContent = `(${fmt(state.A.x)}, ${fmt(state.A.y)})`;
+      document.getElementById('coords-b').textContent = `(${fmt(state.B.x)}, ${fmt(state.B.y)})`;
+      document.getElementById('coords-p').textContent = `(${fmt(P.x)}, ${fmt(P.y)})`;
+
+      const λ = state.lambda;
+      const μ = state.mu;
+      let formulaText, liveText;
+
+      if (state.internal) {
+        formulaText = `p = (μ·a + λ·b) / (λ + μ)`;
+        liveText = `p = (${μ}·a + ${λ}·b) / (${λ}+${μ}) = (${fmt(P.x)}, ${fmt(P.y)})`;
+      } else {
+        formulaText = `p = (μ·a − λ·b) / (μ − λ)   (external)`;
+        liveText = `p = (${μ}·a − ${λ}·b) / (${μ}−${λ}) = (${fmt(P.x)}, ${fmt(P.y)})`;
+      }
+      document.getElementById('formula-display').textContent = formulaText;
+      document.getElementById('live-formula').textContent = liveText;
+    }
+
+    // ========== Interaction ==========
+    function hitTest(sx, sy) {
+      const P = computeP();
+      const points = [
+        { name: 'A', p: state.A },
+        { name: 'B', p: state.B },
+        { name: 'P', p: P }
+      ];
+      for (const pt of points) {
+        const s = toScreen(pt.p);
+        const dx = s.x - sx;
+        const dy = s.y - sy;
+        if (dx * dx + dy * dy < 14 * 14) return pt.name;
+      }
+      return null;
+    }
+
+    function getMousePos(e) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      const pos = getMousePos(e);
+      const hit = hitTest(pos.x, pos.y);
+      if (hit) {
+        state.dragging = hit;
+        canvas.classList.add('dragging');
+      }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      const pos = getMousePos(e);
+
+      // Tooltip
+      const hit = hitTest(pos.x, pos.y);
+      if (hit && !state.dragging) {
+        tooltip.textContent = `Drag ${hit}`;
+        tooltip.style.left = (pos.x + 12) + 'px';
+        tooltip.style.top = (pos.y + 12) + 'px';
+        tooltip.classList.add('visible');
+      } else {
+        tooltip.classList.remove('visible');
+      }
+
+      if (!state.dragging) return;
+
+      let world = toWorld(pos.x, pos.y);
+      if (state.snap) {
+        world.x = Math.round(world.x);
+        world.y = Math.round(world.y);
+      }
+
+      if (state.dragging === 'A') {
+        state.A = world;
+      } else if (state.dragging === 'B') {
+        state.B = world;
+      } else if (state.dragging === 'P') {
+        // When user drags P, we solve for the ratio that places P on the line AB
+        // Project P onto AB and update lambda:mu accordingly (internal only for simplicity)
+        if (state.internal) {
+          const A = state.A, B = state.B;
+          const ABx = B.x - A.x, ABy = B.y - A.y;
+          const len2 = ABx * ABx + ABy * ABy;
+          if (len2 > 1e-8) {
+            let t = ((world.x - A.x) * ABx + (world.y - A.y) * ABy) / len2;
+            t = Math.max(0, Math.min(1, t)); // clamp to segment
+            // t = λ / (λ+μ)  →  λ/μ = t / (1-t)
+            if (t <= 0) {
+              state.lambda = 0.1;
+              state.mu = 10;
+            } else if (t >= 1) {
+              state.lambda = 10;
+              state.mu = 0.1;
+            } else {
+              const r = t / (1 - t); // λ/μ
+              state.lambda = r;
+              state.mu = 1;
+              // Normalise a bit for nicer numbers
+              if (r > 1) {
+                state.lambda = Math.round(r * 10) / 10;
+                state.mu = 1;
+              } else {
+                state.mu = Math.round((1 / r) * 10) / 10;
+                state.lambda = 1;
+              }
+            }
+            // Sync inputs
+            document.getElementById('lambda').value = state.lambda;
+            document.getElementById('mu').value = state.mu;
+            syncSliderFromRatio();
+          }
+        }
+      }
+      draw();
+    });
+
+    window.addEventListener('mouseup', () => {
+      state.dragging = null;
+      canvas.classList.remove('dragging');
+    });
+
+    // ========== Controls ==========
+    function syncSliderFromRatio() {
+      const total = state.lambda + state.mu;
+      const pct = total === 0 ? 50 : (state.lambda / total) * 100;
+      document.getElementById('ratio-slider').value = pct;
+    }
+
+    document.getElementById('lambda').addEventListener('input', (e) => {
+      state.lambda = Math.max(0.1, parseFloat(e.target.value) || 0.1);
+      syncSliderFromRatio();
+      draw();
+    });
+    document.getElementById('mu').addEventListener('input', (e) => {
+      state.mu = Math.max(0.1, parseFloat(e.target.value) || 0.1);
+      syncSliderFromRatio();
+      draw();
+    });
+
+    document.getElementById('ratio-slider').addEventListener('input', (e) => {
+      const pct = parseFloat(e.target.value);
+      // pct = λ / (λ+μ) * 100
+      const t = pct / 100;
+      if (t <= 0.02) {
+        state.lambda = 0.1;
+        state.mu = 5;
+      } else if (t >= 0.98) {
+        state.lambda = 5;
+        state.mu = 0.1;
+      } else {
+        const r = t / (1 - t);
+        state.lambda = Math.round(r * 20) / 20;
+        state.mu = 1;
+        if (state.lambda < 1) {
+          state.mu = Math.round((1 / state.lambda) * 20) / 20;
+          state.lambda = 1;
+        }
+      }
+      document.getElementById('lambda').value = state.lambda;
+      document.getElementById('mu').value = state.mu;
+      draw();
+    });
+
+    document.getElementById('internal').addEventListener('change', (e) => {
+      state.internal = e.target.checked;
+      draw();
+    });
+    document.getElementById('show-grid').addEventListener('change', (e) => {
+      state.showGrid = e.target.checked;
+      draw();
+    });
+    document.getElementById('show-pos-vecs').addEventListener('change', (e) => {
+      state.showPosVecs = e.target.checked;
+      draw();
+    });
+    document.getElementById('snap').addEventListener('change', (e) => {
+      state.snap = e.target.checked;
+    });
+
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      state.A = { x: -4, y: 1 };
+      state.B = { x: 5, y: 2 };
+      state.lambda = 1;
+      state.mu = 1;
+      state.internal = true;
+      document.getElementById('lambda').value = 1;
+      document.getElementById('mu').value = 1;
+      document.getElementById('internal').checked = true;
+      document.getElementById('ratio-slider').value = 50;
+      draw();
+    });
+
+    document.getElementById('btn-challenge').addEventListener('click', () => {
+      // Simple challenge: randomise A/B and ask student to achieve a target ratio by dragging P
+      state.A = { x: (Math.random() - 0.5) * 8, y: (Math.random() - 0.5) * 6 };
+      state.B = { x: (Math.random() - 0.5) * 8, y: (Math.random() - 0.5) * 6 };
+      const targetRatios = [[1,2],[2,1],[1,3],[3,1],[2,3],[3,2],[1,1]];
+      const chosen = targetRatios[Math.floor(Math.random() * targetRatios.length)];
+      state.lambda = chosen[0];
+      state.mu = chosen[1];
+      document.getElementById('lambda').value = state.lambda;
+      document.getElementById('mu').value = state.mu;
+      syncSliderFromRatio();
+      alert(`Challenge: Drag point P so that it divides AB in the ratio ${state.lambda} : ${state.mu}.\n(You can also use the slider / inputs to check.)`);
+      draw();
+    });
+
+    // Initial draw
+    draw();
+  </script>
+</body>
+</html>
